@@ -427,7 +427,8 @@ button:disabled { cursor: default; }
     </form>
 
     <form class="form" id="login" hidden>
-      <p class="who" id="login-who"></p>
+      <label for="li-pseudo">Ton pseudo</label>
+      <input id="li-pseudo" type="text" maxlength="14" autocomplete="username" autocapitalize="off" spellcheck="false">
       <label for="li-pw">Mot de passe</label>
       <input id="li-pw" type="password" autocomplete="current-password">
       <button class="btn btn-main" id="login-go" type="submit">Se connecter</button>
@@ -663,6 +664,71 @@ button:disabled { cursor: default; }
 
 <div class="toast" id="toast" hidden><span id="toast-text"></span></div>
 
+<script type="module">
+(async function () {
+  function done() { window.dispatchEvent(new Event("pmfb")); }
+  if (window.pmFb !== undefined) { done(); return; }
+  try {
+    var B = "https://www.gstatic.com/firebasejs/10.14.1/";
+    var m = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-auth.js"), import(B + "firebase-firestore.js")]);
+    var App = m[0], Au = m[1], Fs = m[2];
+    var app = App.initializeApp({
+      apiKey: "AIzaSyCAhWl9P-xheEQbCVMq-ua6roJrgDEo4Dc",
+      authDomain: "plus-ou-moin.firebaseapp.com",
+      projectId: "plus-ou-moin",
+      storageBucket: "plus-ou-moin.firebasestorage.app",
+      messagingSenderId: "7822309667",
+      appId: "1:7822309667:web:c3148a5b9158de72617496"
+    });
+    var auth = Au.getAuth(app), fs = Fs.getFirestore(app), unsubs = [];
+    function wrapDoc(sn) { return { id: sn.id, exists: sn.exists(), metadata: sn.metadata, data: function () { return sn.data(); } }; }
+    function wrapQ(sn) { return { empty: sn.empty, metadata: sn.metadata, docs: sn.docs.map(function (d) { return { id: d.id, data: function () { return d.data(); } }; }) }; }
+    function docApi(path) {
+      var ref = Fs.doc(fs, path);
+      return {
+        get: function () { return Fs.getDoc(ref).then(wrapDoc); },
+        set: function (d) { return Fs.setDoc(ref, d); },
+        update: function (d) { return Fs.setDoc(ref, d, { merge: true }); },
+        delete: function () { return Fs.deleteDoc(ref); },
+        onSnapshot: function (ok, err) { return Fs.onSnapshot(ref, function (sn) { ok(wrapDoc(sn)); }, err); }
+      };
+    }
+    function colApi(name, cons) {
+      cons = cons || [];
+      function q() { return Fs.query.apply(null, [Fs.collection(fs, name)].concat(cons)); }
+      return {
+        where: function (f, op, v) { return colApi(name, cons.concat([Fs.where(f, op, v)])); },
+        orderBy: function (f, dir) { return colApi(name, cons.concat([Fs.orderBy(f, dir)])); },
+        limit: function (n) { return colApi(name, cons.concat([Fs.limit(n)])); },
+        get: function () { return Fs.getDocs(q()).then(wrapQ); },
+        onSnapshot: function (ok, err) {
+          var u = Fs.onSnapshot(q(), function (sn) { ok(wrapQ(sn)); }, err);
+          unsubs.push(u);
+          return u;
+        }
+      };
+    }
+    window.pmFb = {
+      db: {
+        doc: docApi,
+        collection: colApi,
+        stopAll: function () { unsubs.forEach(function (u) { try { u(); } catch (e) {} }); unsubs = []; }
+      },
+      auth: {
+        ready: function () { return auth.authStateReady().then(function () { return auth.currentUser; }); },
+        signUp: function (e, p) { return Au.createUserWithEmailAndPassword(auth, e, p).then(function (c) { return c.user; }); },
+        signIn: function (e, p) { return Au.signInWithEmailAndPassword(auth, e, p).then(function (c) { return c.user; }); },
+        signOut: function () { return Au.signOut(auth); },
+        reauth: function (p) { return Au.reauthenticateWithCredential(auth.currentUser, Au.EmailAuthProvider.credential(auth.currentUser.email, p)); },
+        deleteUser: function () { return Au.deleteUser(auth.currentUser); }
+      }
+    };
+  } catch (e) {
+    window.pmFb = null;
+  }
+  done();
+})();
+</script>
 <script>
 (function () {
   var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby"];
@@ -724,6 +790,7 @@ button:disabled { cursor: default; }
   var $ = function (id) { return document.getElementById(id); };
   var s = { phase: "welcome", L: LVLS[1], lvl: "normal", secret: 0, low: 1, high: 100, guesses: [], entry: "", t0: 0, timer: null, elapsed: 0, fails: 0 };
   var ctx = { db: null, uid: null, canWrite: null, ready: false, slow: false, existing: null };
+  var FB = null, boardStarted = false;
   var mode = "none";            // "none" | "account" | "guest"
   var me = null;
   var boards = {}, boardErrs = {}, boardSlows = {}, boardLvl = "normal";
@@ -816,8 +883,7 @@ button:disabled { cursor: default; }
 
   /* ---------- saving ---------- */
   function playerPath() { return "players/" + ctx.uid; }
-  function secretPath() { return "data/users/" + ctx.uid + "/secret"; }
-  function persist(patch) {
+    function persist(patch) {
     for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) me[k] = patch[k];
     if (mode === "guest") {
       lsSet("pm2.guest", JSON.stringify(me));
@@ -882,18 +948,25 @@ button:disabled { cursor: default; }
     return "";
   }
   function lockLeft() { return Math.max(0, Math.ceil(((+lsGet("pm2.lock") || 0) - Date.now()) / 1000)); }
-  async function verifyPw(pw) {
-    if (lockLeft() > 0) return "locked";
-    if (!pw) return "empty";
-    var snap;
-    try { snap = await ctx.db.doc(secretPath()).get(); } catch (e) { return "error"; }
-    if (!snap.exists) return "nosecret";
-    var sec = snap.data() || {};
-    var h = await hashPw(pw, String(sec.salt || ""), String(sec.hash || ""));
-    if (h === sec.hash) { s.fails = 0; return "ok"; }
+  function failPw() {
     s.fails++;
     if (s.fails >= 5) { s.fails = 0; lsSet("pm2.lock", String(Date.now() + 30000)); return "locked"; }
     return "bad";
+  }
+  function fbPw(pw) { return pw + "~PoM"; }
+  function pseudoKey(name) { return String(name || "").replace(/\s+/g, " ").trim().toLowerCase(); }
+  function pseudoEmail(name) { var k = pseudoKey(name); return "p" + cyrb(k, 11) + cyrb(k, 22) + cyrb(k, 33) + "@plusoumoins.game"; }
+  async function verifyPw(pw) {
+    if (lockLeft() > 0) return "locked";
+    if (!pw) return "empty";
+    if (!FB) return "error";
+    try { await FB.auth.reauth(fbPw(pw)); s.fails = 0; return "ok"; }
+    catch (e) {
+      var c = e && e.code;
+      if (c === "auth/wrong-password" || c === "auth/invalid-credential") return failPw();
+      if (c === "auth/too-many-requests") { lsSet("pm2.lock", String(Date.now() + 30000)); return "locked"; }
+      return "error";
+    }
   }
   function pwMsg(r) {
     if (r === "locked") return "Trop d'erreurs. Réessaie dans " + lockLeft() + " s.";
@@ -1167,7 +1240,7 @@ button:disabled { cursor: default; }
     n.textContent = text;
     n.classList.toggle("warn", !!warn);
   }
-  function accountsAvailable() { return !!(ctx.db && ctx.uid && !ctx.slow); }
+  function accountsAvailable() { return !!(ctx.db && !ctx.slow); }
   function showForm(name) {
     ["signup", "login", "setpw"].forEach(function (f) { $(f).hidden = f !== name; });
     $("welcome-actions").hidden = !!name;
@@ -1178,12 +1251,10 @@ button:disabled { cursor: default; }
     $("w-login").disabled = !ok;
     if (!ctx.ready) { setNote("Connexion en cours..."); return; }
     if (!accountsAvailable()) {
-      setNote(ctx.slow ? "Le serveur ne répond pas pour le moment. Tu peux jouer sans compte." : "Les comptes ne sont pas disponibles ici. Tu peux jouer sans compte.");
+      setNote(ctx.slow ? "Le serveur ne répond pas pour le moment. Tu peux jouer sans compte." : "Impossible de joindre le serveur (es-tu connecté à Internet ?). Tu peux jouer sans compte.");
       return;
     }
-    if (ctx.existing && ctx.existing.name) setNote("Un compte existe déjà pour toi : " + ctx.existing.name + ". Appuie sur Se connecter.");
-    else if (ctx.canWrite === false) setNote("Ton accès est en lecture seule : demande à être invité comme contributeur pour créer un compte.", true);
-    else setNote("");
+    setNote("");
   }
   function loginAccount(data) {
     mode = "account";
@@ -1193,7 +1264,7 @@ button:disabled { cursor: default; }
       var mig = {}; mig["b_" + me.bestLvl] = me.bests[me.bestLvl];
       persist(mig);
     }
-    lsSet("pm2.session", ctx.uid);
+    if (!boardStarted) { boardStarted = true; startBoard(); }
     goMenu();
   }
 
@@ -1205,25 +1276,64 @@ button:disabled { cursor: default; }
     var prob = pwProblem(pw, name);
     if (prob) { setNote(prob, true); return; }
     if (pw !== pw2) { setNote("Les deux mots de passe ne sont pas identiques.", true); return; }
+    if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
     $("signup-go").disabled = true;
     try {
-      try {
-        var q = await ctx.db.collection("players").where("nameLower", "==", name.toLowerCase()).limit(1).get();
-        if (!q.empty && q.docs[0].id !== ctx.uid) { setNote("Ce pseudo est déjà pris. Essaie-en un autre.", true); return; }
-      } catch (err) {}
-      var salt = makeSalt();
-      var hash = await hashPw(pw, salt, "");
-      await ctx.db.doc(secretPath()).set({ salt: salt, hash: hash, created: Date.now() });
-      var data = { name: name, nameLower: name.toLowerCase(), best: 0, bestLvl: "", games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, created: Date.now() };
+      var user;
+      try { user = await FB.auth.signUp(pseudoEmail(name), fbPw(pw)); }
+      catch (err) {
+        if (err && err.code === "auth/email-already-in-use") setNote("Ce pseudo est déjà pris. Essaie-en un autre.", true);
+        else if (err && err.code === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
+        else setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
+        return;
+      }
+      ctx.uid = user.uid; ctx.canWrite = true;
+      var data = { name: name, nameLower: pseudoKey(name), best: 0, bestLvl: "", games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, created: Date.now() };
       await ctx.db.doc(playerPath()).set(data);
       ctx.existing = data;
       $("su-pw").value = ""; $("su-pw2").value = "";
       loginAccount(data);
     } catch (err) {
-      if (err && err.code === "invalid_argument") setNote("Ton accès ne permet pas de créer un compte. Demande à être invité comme contributeur, ou joue sans compte.", true);
-      else setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
+      setNote("Le compte est créé mais le profil n'a pas pu être enregistré. Connecte-toi pour réessayer.", true);
     } finally {
       $("signup-go").disabled = false;
+    }
+  }
+
+  async function onLogin(e) {
+    e.preventDefault();
+    var name = $("li-pseudo").value.replace(/\s+/g, " ").trim(), pw = $("li-pw").value;
+    if (!name || !pw) { setNote("Entre ton pseudo et ton mot de passe.", true); return; }
+    if (lockLeft() > 0) { setNote(pwMsg("locked"), true); return; }
+    if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
+    $("login-go").disabled = true;
+    try {
+      var user;
+      try { user = await FB.auth.signIn(pseudoEmail(name), fbPw(pw)); }
+      catch (err) {
+        var c = err && err.code;
+        if (c === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
+        else if (c === "auth/too-many-requests") { lsSet("pm2.lock", String(Date.now() + 30000)); setNote(pwMsg("locked"), true); }
+        else if (c === "auth/invalid-credential" || c === "auth/user-not-found" || c === "auth/wrong-password") {
+          var r = failPw();
+          setNote(r === "locked" ? pwMsg("locked") : "Pseudo ou mot de passe incorrect.", true);
+        } else setNote("Impossible de se connecter pour le moment. Réessaie dans un instant.", true);
+        return;
+      }
+      s.fails = 0;
+      ctx.uid = user.uid; ctx.canWrite = true;
+      var d = await freshPlayer();
+      if (!d) {
+        d = { name: name, nameLower: pseudoKey(name), best: 0, bestLvl: "", games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, created: Date.now() };
+        await ctx.db.doc(playerPath()).set(d);
+        ctx.existing = d;
+      }
+      $("li-pw").value = "";
+      loginAccount(d);
+    } catch (err) {
+      setNote("Impossible de charger ton profil pour le moment.", true);
+    } finally {
+      $("login-go").disabled = false;
     }
   }
 
@@ -1232,50 +1342,9 @@ button:disabled { cursor: default; }
       var ps = await ctx.db.doc(playerPath()).get();
       if (ps.exists) { ctx.existing = ps.data(); return ctx.existing; }
     } catch (err) {}
-    return ctx.existing;
+    return null;
   }
-
-  async function onLogin(e) {
-    e.preventDefault();
-    $("login-go").disabled = true;
-    try {
-      var r = await verifyPw($("li-pw").value);
-      if (r === "ok") {
-        var d = await freshPlayer();
-        $("li-pw").value = "";
-        if (d) loginAccount(d); else setNote("Aucun compte trouvé pour toi.", true);
-      } else if (r === "nosecret") {
-        $("setpw-who").textContent = ctx.existing && ctx.existing.name ? ctx.existing.name : "";
-        showForm("setpw");
-        setNote("");
-      } else {
-        setNote(pwMsg(r), true);
-      }
-    } finally {
-      $("login-go").disabled = false;
-    }
-  }
-
-  async function onSetPw(e) {
-    e.preventDefault();
-    var pw = $("sp-pw").value, pw2 = $("sp-pw2").value;
-    var prob = pwProblem(pw, ctx.existing && ctx.existing.name);
-    if (prob) { setNote(prob, true); return; }
-    if (pw !== pw2) { setNote("Les deux mots de passe ne sont pas identiques.", true); return; }
-    $("setpw-go").disabled = true;
-    try {
-      var salt = makeSalt();
-      var hash = await hashPw(pw, salt, "");
-      await ctx.db.doc(secretPath()).set({ salt: salt, hash: hash, created: Date.now() });
-      $("sp-pw").value = ""; $("sp-pw2").value = "";
-      var d = await freshPlayer();
-      if (d) loginAccount(d);
-    } catch (err) {
-      setNote("Impossible d'enregistrer le mot de passe pour le moment.", true);
-    } finally {
-      $("setpw-go").disabled = false;
-    }
-  }
+  function onSetPw(e) { e.preventDefault(); }
 
   function playAsGuest() {
     mode = "guest";
@@ -1286,7 +1355,11 @@ button:disabled { cursor: default; }
     goMenu();
   }
   function logout() {
-    if (mode === "account") lsDel("pm2.session");
+    if (mode === "account") {
+      lsDel("pm2.session");
+      try { FB.db.stopAll(); FB.auth.signOut(); } catch (e) {}
+      ctx.uid = null; ctx.existing = null; boardStarted = false; boards = {}; boardErrs = {};
+    }
     mode = "none";
     me = null;
     goWelcome();
@@ -1308,14 +1381,14 @@ button:disabled { cursor: default; }
       }
       var r = await verifyPw($("del-pw").value);
       if (r !== "ok") {
-        $("del-note").textContent = r === "nosecret" ? "Ce compte n'a pas de mot de passe. Déconnecte-toi puis reconnecte-toi pour en choisir un." : pwMsg(r);
+        $("del-note").textContent = pwMsg(r);
         $("del-note").classList.add("warn");
         return;
       }
       try { await ctx.db.doc(playerPath()).delete(); }
       catch (err) { $("del-note").textContent = "La suppression a échoué. Réessaie dans un instant."; $("del-note").classList.add("warn"); return; }
-      try { await ctx.db.doc(secretPath()).delete(); } catch (err) {}
-      ctx.existing = null;
+      try { FB.db.stopAll(); await FB.auth.deleteUser(); } catch (err) { try { FB.auth.signOut(); } catch (e2) {} }
+      ctx.existing = null; ctx.uid = null; boardStarted = false; boards = {}; boardErrs = {};
       lsDel("pm2.session");
       mode = "none"; me = null;
       goWelcome();
@@ -1363,6 +1436,7 @@ button:disabled { cursor: default; }
     rows.innerHTML = "";
     note.textContent = "";
     if (!ctx.db) { note.textContent = "Le classement n'est pas disponible ici."; return; }
+    if (mode !== "account") { note.textContent = "Connecte-toi avec un compte pour voir le classement."; return; }
     if (boardErrs[id]) { note.textContent = "Le classement est inaccessible pour le moment."; return; }
     var docs = boards[id];
     if (!docs) { note.textContent = boardSlows[id] ? "Chargement... la connexion semble lente." : "Chargement..."; return; }
@@ -2061,7 +2135,7 @@ button:disabled { cursor: default; }
   }
   function newCode() { var c = ""; for (var i = 0; i < 6; i++) c += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length)); return c; }
   function duelNote(text, warn) { var n = $("duel-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
-  function duelReady() { return mode === "account" && !!ctx.db && !!ctx.uid && ctx.canWrite !== false; }
+  function duelReady() { return mode === "account" && !!ctx.db && !!ctx.uid; }
   function validDuel(d) { return !!d && !!lvlById(d.lvl) && typeof d.seed === "number" && d.seed > 0 && typeof d.status === "string"; }
   function copyCode(code) {
     if (!code) return;
@@ -2254,12 +2328,16 @@ button:disabled { cursor: default; }
     if (!c || !c.ref) return;
     if (c.data && c.data.winner && c.data.winner.uid !== ctx.uid) { duelOutcome(false, c.data.winner, sc, attempts); return; }
     var ref = c.ref;
-    ref.acquire({ holder: ctx.uid, ttlMs: 600000 }).then(function (r) {
-      if (!r.acquired) {
-        return ref.get().then(function (sn) { var dd = sn.exists ? sn.data() : null; duelOutcome(false, dd && dd.winner, sc, attempts); });
-      }
-      var win = { uid: ctx.uid, name: me.name, score: sc.total, tries: attempts, time: Math.round(s.elapsed * 10) / 10 };
-      return ref.update({ status: "done", winner: win }).then(function () { duelOutcome(true, win, sc, attempts); });
+    var win = { uid: ctx.uid, name: me.name, score: sc.total, tries: attempts, time: Math.round(s.elapsed * 10) / 10 };
+    ref.update({ status: "done", winner: win }).then(function () {
+      duelOutcome(true, win, sc, attempts);
+    }).catch(function () {
+      return ref.get().then(function (sn) {
+        var dd = sn.exists ? sn.data() : null;
+        if (dd && dd.winner && dd.winner.uid === ctx.uid) duelOutcome(true, dd.winner, sc, attempts);
+        else if (dd && dd.winner) duelOutcome(false, dd.winner, sc, attempts);
+        else $("tip").textContent = "Le résultat n'a pas pu être enregistré.";
+      });
     }).catch(function () { $("tip").textContent = "Le résultat n'a pas pu être enregistré."; });
   }
   function loseDuel(w) {
@@ -2292,35 +2370,39 @@ button:disabled { cursor: default; }
     $("duel-create").disabled = !ok;
     $("duel-join").disabled = !ok;
     $("duel-code").disabled = !ok;
-    duelNote(ok ? "" : (mode === "account" ? "Ton accès est en lecture seule : tu ne peux pas créer de salle." : "Connecte-toi avec un compte pour défier un ami."), !ok);
+    duelNote(ok ? "" : (mode === "account" ? "Impossible de créer une salle pour le moment." : "Connecte-toi avec un compte pour défier un ami."), !ok);
     show("duel");
   }
 
   /* ---------- start-up ---------- */
   function timeout(ms) { return new Promise(function (r) { setTimeout(function () { r("timeout"); }, ms); }); }
 
+  function waitFb() {
+    return new Promise(function (r) {
+      if (window.pmFb !== undefined) { r(); return; }
+      window.addEventListener("pmfb", function () { r(); }, { once: true });
+      setTimeout(r, 15000);
+    });
+  }
   async function init() {
-    try {
-      if (!(window.claude && window.claude.use)) throw new Error("no runtime");
-      var res = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
-      ctx.db = res[0];
-      var user = res[1];
-      if (user) {
-        ctx.uid = await user.id();
-        ctx.canWrite = await user.can("data.write");
-      }
-    } catch (e) {}
-    if (ctx.db) startBoard();
-    if (ctx.db && ctx.uid) {
+    await waitFb();
+    FB = window.pmFb || null;
+    if (FB) {
+      ctx.db = FB.db;
       try {
-        var snap = await Promise.race([ctx.db.doc(playerPath()).get(), timeout(10000)]);
-        if (snap === "timeout") ctx.slow = true;
-        else if (snap.exists) ctx.existing = snap.data();
+        var u = await Promise.race([FB.auth.ready(), timeout(10000)]);
+        if (u === "timeout") ctx.slow = true;
+        else if (u) {
+          ctx.uid = u.uid; ctx.canWrite = true;
+          var snap = await Promise.race([ctx.db.doc(playerPath()).get(), timeout(10000)]);
+          if (snap === "timeout") ctx.slow = true;
+          else if (snap.exists) ctx.existing = snap.data();
+        }
       } catch (e) { ctx.slow = true; }
     }
     ctx.ready = true;
     if (s.phase !== "welcome") return;
-    if (ctx.existing && accountsAvailable() && lsGet("pm2.session") === ctx.uid) { loginAccount(ctx.existing); return; }
+    if (ctx.existing && ctx.uid && accountsAvailable()) { loginAccount(ctx.existing); return; }
     renderWelcome();
   }
 
@@ -2369,21 +2451,15 @@ button:disabled { cursor: default; }
 
   $("w-create").addEventListener("click", function () {
     if (!ctx.ready || !accountsAvailable()) return;
-    if (ctx.existing && ctx.existing.name) {
-      setNote("Tu as déjà un compte : " + ctx.existing.name + ". Appuie sur Se connecter.", true);
-      return;
-    }
     showForm("signup");
     setNote("");
     $("su-pseudo").focus();
   });
   $("w-login").addEventListener("click", function () {
     if (!ctx.ready || !accountsAvailable()) return;
-    if (!ctx.existing || !ctx.existing.name) { setNote("Aucun compte trouvé pour toi. Appuie sur Créer un compte.", true); return; }
-    $("login-who").textContent = ctx.existing.name;
     showForm("login");
     setNote("");
-    $("li-pw").focus();
+    $("li-pseudo").focus();
   });
   var backs = document.querySelectorAll("[data-back]");
   for (var bi = 0; bi < backs.length; bi++) backs[bi].addEventListener("click", function () { showForm(null); renderWelcome(); });
