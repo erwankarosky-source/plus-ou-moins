@@ -1,7 +1,13 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plus ou Moins</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;800&display=swap">
 <style>
+[hidden] { display: none !important; }
 /* Layout: one phone-sized column, eight views (welcome, menu, levels, game, ranking, egg shop, pet inventory, delete account). Soft pastel, chunky buttons with a bottom edge, rarity colours as tokens. */
 :root {
   --bg: #ffeff5;
@@ -394,6 +400,8 @@ button:disabled { cursor: default; }
   .fill { transition: none; }
 }
 </style>
+</head>
+<body>
 
 <main class="app">
 
@@ -2410,3 +2418,5 @@ button:disabled { cursor: default; }
   init();
 })();
 </script>
+</body>
+</html>
