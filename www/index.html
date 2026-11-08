@@ -178,6 +178,7 @@ button:disabled { cursor: default; }
 .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .tile { min-height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 4px; font-size: 1rem; }
 .tile svg { width: 30px; height: 30px; color: var(--accent); }
+#open-missions { grid-column: 1 / -1; min-height: 64px; flex-direction: row; gap: 10px; }
 
 /* levels */
 .title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; line-height: 1.05; }
@@ -264,6 +265,17 @@ button:disabled { cursor: default; }
 .dd.egg { font-size: 0.7rem; }
 .dtxt { font-size: 0.9rem; color: var(--muted); }
 
+/* missions */
+.mis { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 12px; display: grid; gap: 8px; }
+.mis.done { border-color: var(--up); }
+.mis .mt { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; overflow-wrap: anywhere; }
+.mis .md { color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+.mis .mrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mis .mnum { font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; color: var(--muted); }
+.mbar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.mbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.mis.done .mbar i { background: var(--up); }
+.mlist { display: grid; gap: 10px; }
 /* duels */
 .lobby-code { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; letter-spacing: 0.18em; color: var(--accent); text-align: center; overflow-wrap: anywhere; }
 .dsmall { color: var(--muted); font-size: 0.85rem; text-align: center; }
@@ -476,6 +488,10 @@ button:disabled { cursor: default; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20L16 8M13 5h6v6"/><path d="M20 20L8 8M11 5H5v6"/></svg>
         Défier un ami
       </button>
+      <button class="btn btn-soft tile" id="open-missions" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>
+        Défis
+      </button>
     </div>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
@@ -526,6 +542,15 @@ button:disabled { cursor: default; }
     </div>
     <p class="note" id="lobby-note" aria-live="polite"></p>
     <button class="btn btn-main" id="lobby-start" type="button" disabled>Lancer la partie</button>
+  </section>
+
+  <section class="view" id="missions" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title">Défis</h2>
+    <p class="note" id="mis-note" aria-live="polite"></p>
+    <div class="mlist" id="mis-list"></div>
   </section>
 
   <section class="view" id="board" hidden>
@@ -701,9 +726,9 @@ button:disabled { cursor: default; }
         orderBy: function (f, dir) { return colApi(name, cons.concat([Fs.orderBy(f, dir)])); },
         limit: function (n) { return colApi(name, cons.concat([Fs.limit(n)])); },
         get: function () { return Fs.getDocs(q()).then(wrapQ); },
-        onSnapshot: function (ok, err) {
+        onSnapshot: function (ok, err, keep) {
           var u = Fs.onSnapshot(q(), function (sn) { ok(wrapQ(sn)); }, err);
-          unsubs.push(u);
+          if (!keep) unsubs.push(u);
           return u;
         }
       };
@@ -731,7 +756,7 @@ button:disabled { cursor: default; }
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -824,7 +849,7 @@ button:disabled { cursor: default; }
   }
   function bonusText(p) { var v = p.pct; return "+" + v + " % " + (p.kind === "coin" ? "pièces" : "points"); }
 
-  function blank() { return { name: "", best: 0, bestLvl: "", bests: { easy: 0, normal: 0, hard: 0, nightmare: 0 }, games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, daily: { day: "", streak: 0 }, duels: [] }; }
+  function blank() { return { name: "", best: 0, bestLvl: "", bests: { easy: 0, normal: 0, hard: 0, nightmare: 0 }, games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, daily: { day: "", streak: 0 }, duels: [], mp: {}, mc: {} }; }
   function normalize(d) {
     var b = blank();
     if (!d) return b;
@@ -838,6 +863,10 @@ button:disabled { cursor: default; }
     b.games = Math.max(0, +d.games || 0);
     b.coins = Math.max(0, Math.floor(+d.coins || 0));
     b.hatched = Math.max(0, Math.floor(+d.hatched || 0));
+    ["mp", "mc"].forEach(function (f) {
+      var src = d[f];
+      if (src && typeof src === "object") for (var kk in src) if (Object.prototype.hasOwnProperty.call(src, kk) && /^[\w-]{1,40}$/.test(kk) && src[kk]) b[f][kk] = f === "mc" ? true : (+src[kk] || 1);
+    });
     var dd = d.daily && typeof d.daily === "object" ? d.daily : {};
     b.daily = { day: typeof dd.day === "string" ? dd.day : "", streak: Math.max(0, Math.floor(+dd.streak || 0)) };
     b.duels = Array.isArray(d.duels) ? d.duels.filter(function (c) { return typeof c === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(c); }).slice(0, 8) : [];
@@ -1981,6 +2010,7 @@ button:disabled { cursor: default; }
     if (isRecord) { patch.best = sc.total; patch.bestLvl = L.id; }
     var lvlRecord = !s.duel && sc.total > (me.bests[L.id] || 0);
     if (lvlRecord) { me.bests[L.id] = sc.total; patch["b_" + L.id] = sc.total; }
+    if (!s.duel) { var npm = missionsOnWin(L, attempts, sc.total); if (npm) { patch.mp = npm; toast("Défi accompli ! Récupère ta récompense dans Défis."); } }
     persist(patch);
 
     var w = $("word");
@@ -2374,6 +2404,127 @@ button:disabled { cursor: default; }
     show("duel");
   }
 
+  /* ---------- remote settings (Firestore: config/shop, config/pets) and missions ---------- */
+  var DEFAULT_MISSIONS = [
+    { id: "d1", title: "Premiers pas", type: "games", level: "", target: 5, reward: 50, order: 1 },
+    { id: "d2", title: "Éleveur", type: "hatch", level: "", target: 3, reward: 60, order: 2 },
+    { id: "d3", title: "Éclair", type: "tries", level: "normal", target: 6, reward: 100, order: 3 },
+    { id: "d4", title: "Gros score", type: "score", level: "normal", target: 1200, reward: 150, order: 4 },
+    { id: "d5", title: "Marathonien", type: "games", level: "", target: 25, reward: 200, order: 5 }
+  ];
+  var remoteMissions = null, configStarted = false, DSHINY = SHINY_CHANCE;
+  EGGS.forEach(function (e) { e.dprice = e.price; e.dodds = e.odds.slice(); });
+  PETS.forEach(function (q) { q.dpct = q.pct; });
+  function okNum(v, lo, hi) { v = +v; return isFinite(v) && v >= lo && v <= hi ? v : null; }
+  function applyShop(d) {
+    d = d || {};
+    EGGS.forEach(function (e) {
+      var v = okNum(d["egg_" + e.id], 1, 10000000);
+      e.price = v === null ? e.dprice : Math.round(v);
+      var o = d["odds_" + e.id], arr = typeof o === "string" ? o.split(/[\s,;]+/).filter(Boolean).map(Number) : null;
+      if (arr && arr.length === e.dodds.length && arr.every(function (x) { return isFinite(x) && x >= 0; }) && arr.reduce(function (a, b) { return a + b; }, 0) > 0) e.odds = arr;
+      else e.odds = e.dodds.slice();
+    });
+    var sh = okNum(d.shiny_chance, 0, 100);
+    SHINY_CHANCE = sh === null ? DSHINY : sh;
+  }
+  function applyPets(d) {
+    d = d || {};
+    PETS.forEach(function (q, i) {
+      var v = okNum(d[q.id], 1, 1000);
+      q.pct = v === null ? q.dpct : Math.round(v);
+      SPETS[i].pct = Math.round(q.pct * 1.5);
+    });
+  }
+  function refreshConfigViews() {
+    if (!me) return;
+    if (s.phase === "shop") renderShop();
+    else if (s.phase === "inv") renderInv();
+    else if (s.phase === "missions") renderMissions();
+  }
+  function startConfig() {
+    if (configStarted || !ctx.db) return;
+    configStarted = true;
+    try {
+      ctx.db.doc("config/shop").onSnapshot(function (sn) { applyShop(sn.exists ? sn.data() : null); refreshConfigViews(); }, function () {});
+      ctx.db.doc("config/pets").onSnapshot(function (sn) { applyPets(sn.exists ? sn.data() : null); refreshConfigViews(); }, function () {});
+      ctx.db.collection("missions").onSnapshot(function (snap) {
+        var out = [];
+        snap.docs.forEach(function (x) {
+          var d = x.data() || {};
+          if (!/^[\w-]{1,40}$/.test(x.id) || d.active === false) return;
+          var type = ["games", "hatch", "score", "tries"].indexOf(d.type) !== -1 ? d.type : "";
+          var target = okNum(d.target, 1, 1000000000);
+          if (!type || target === null) return;
+          out.push({ id: x.id, title: typeof d.title === "string" && d.title ? d.title.slice(0, 60) : "Défi", desc: typeof d.desc === "string" ? d.desc.slice(0, 140) : "",
+            type: type, level: lvlById(d.level) ? d.level : "", target: Math.round(target), reward: Math.round(okNum(d.reward, 0, 1000000) || 0), order: +d.order || 0 });
+        });
+        out.sort(function (a, b) { return a.order - b.order || a.title.localeCompare(b.title); });
+        remoteMissions = out;
+        refreshConfigViews();
+      }, function () {}, true);
+    } catch (e) {}
+  }
+  function missionList() { return remoteMissions && remoteMissions.length ? remoteMissions : DEFAULT_MISSIONS; }
+  function missionText(m) {
+    if (m.desc) return m.desc;
+    var L = lvlById(m.level), where = L ? " en " + L.name : "";
+    if (m.type === "games") return "Joue " + fmtInt(m.target) + " partie" + (m.target > 1 ? "s" : "") + ".";
+    if (m.type === "hatch") return "Ouvre " + fmtInt(m.target) + " œuf" + (m.target > 1 ? "s" : "") + ".";
+    if (m.type === "score") return "Fais au moins " + fmtInt(m.target) + " points en une partie" + where + ".";
+    return "Trouve le nombre en " + fmtInt(m.target) + " essai" + (m.target > 1 ? "s" : "") + " ou moins" + where + ".";
+  }
+  function missionProgress(m) {
+    if (m.type === "games") return me.games;
+    if (m.type === "hatch") return me.hatched;
+    return me.mp[m.id] ? m.target : 0;
+  }
+  function missionsOnWin(L, attempts, total) {
+    var np = null;
+    missionList().forEach(function (m) {
+      if ((m.type !== "score" && m.type !== "tries") || me.mp[m.id] || (m.level && m.level !== L.id)) return;
+      if ((m.type === "score" && total >= m.target) || (m.type === "tries" && attempts <= m.target)) {
+        if (!np) np = JSON.parse(JSON.stringify(me.mp));
+        np[m.id] = 1;
+      }
+    });
+    return np;
+  }
+  function claimMission(id) {
+    var m = missionList().filter(function (x) { return x.id === id; })[0];
+    if (!m || me.mc[id] || missionProgress(m) < m.target) return;
+    var mc = JSON.parse(JSON.stringify(me.mc)); mc[id] = true;
+    persist({ coins: me.coins + m.reward, mc: mc });
+    $("coins").textContent = fmtInt(me.coins);
+    toast("+" + fmtInt(m.reward) + " pièces");
+    renderMissions();
+  }
+  function renderMissions() {
+    var box = $("mis-list");
+    box.innerHTML = "";
+    $("mis-note").textContent = "";
+    var list = missionList();
+    if (!list.length) { var em = document.createElement("div"); em.className = "empty-state"; em.textContent = "Aucun défi pour le moment."; box.appendChild(em); return; }
+    list.forEach(function (m) {
+      var prog = Math.min(m.target, missionProgress(m)), done = prog >= m.target, claimed = !!me.mc[m.id];
+      var card = document.createElement("div"); card.className = "mis" + (done ? " done" : "");
+      var t = document.createElement("div"); t.className = "mt"; t.textContent = m.title;
+      var d = document.createElement("div"); d.className = "md"; d.textContent = missionText(m);
+      var bar = document.createElement("div"); bar.className = "mbar";
+      var fill = document.createElement("i"); fill.style.width = (prog / m.target * 100) + "%"; bar.appendChild(fill);
+      var row = document.createElement("div"); row.className = "mrow";
+      var num = document.createElement("span"); num.className = "mnum"; num.textContent = fmtInt(prog) + " / " + fmtInt(m.target);
+      var btn = document.createElement("button"); btn.type = "button"; btn.className = "btn btn-main btn-sm";
+      btn.textContent = claimed ? "Récupéré" : "Récupérer +" + fmtInt(m.reward);
+      btn.disabled = claimed || !done;
+      btn.dataset.mid = m.id;
+      row.appendChild(num); row.appendChild(btn);
+      card.appendChild(t); card.appendChild(d); card.appendChild(bar); card.appendChild(row);
+      box.appendChild(card);
+    });
+  }
+  function goMissions() { stopTimer(); s.phase = "missions"; renderMissions(); show("missions"); }
+
   /* ---------- start-up ---------- */
   function timeout(ms) { return new Promise(function (r) { setTimeout(function () { r("timeout"); }, ms); }); }
 
@@ -2389,6 +2540,7 @@ button:disabled { cursor: default; }
     FB = window.pmFb || null;
     if (FB) {
       ctx.db = FB.db;
+      startConfig();
       try {
         var u = await Promise.race([FB.auth.ready(), timeout(10000)]);
         if (u === "timeout") ctx.slow = true;
@@ -2479,6 +2631,11 @@ button:disabled { cursor: default; }
     if ($("daily-btn").dataset.state === "close") closeDaily(); else claimDaily();
   });
   $("open-duel").addEventListener("click", goDuel);
+  $("open-missions").addEventListener("click", goMissions);
+  $("mis-list").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (b && b.dataset.mid && !b.disabled) claimMission(b.dataset.mid);
+  });
   $("duel-lvls").addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
