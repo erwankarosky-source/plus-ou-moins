@@ -2412,7 +2412,7 @@ button:disabled { cursor: default; }
     { id: "d4", title: "Gros score", type: "score", level: "normal", target: 1200, reward: 150, order: 4 },
     { id: "d5", title: "Marathonien", type: "games", level: "", target: 25, reward: 200, order: 5 }
   ];
-  var remoteMissions = null, configStarted = false, DSHINY = SHINY_CHANCE;
+  var remoteMissions = null, configStarted = false, DSHINY = SHINY_CHANCE, SHINY_MULT = 1.5;
   EGGS.forEach(function (e) { e.dprice = e.price; e.dodds = e.odds.slice(); });
   PETS.forEach(function (q) { q.dpct = q.pct; });
   function okNum(v, lo, hi) { v = +v; return isFinite(v) && v >= lo && v <= hi ? v : null; }
@@ -2430,10 +2430,12 @@ button:disabled { cursor: default; }
   }
   function applyPets(d) {
     d = d || {};
+    var sm = okNum(d.shiny_mult, 0.1, 20);
+    SHINY_MULT = sm === null ? 1.5 : sm;
     PETS.forEach(function (q, i) {
       var v = okNum(d[q.id], 1, 1000);
       q.pct = v === null ? q.dpct : Math.round(v);
-      SPETS[i].pct = Math.round(q.pct * 1.5);
+      SPETS[i].pct = Math.max(1, Math.round(q.pct * SHINY_MULT));
     });
   }
   function refreshConfigViews() {
