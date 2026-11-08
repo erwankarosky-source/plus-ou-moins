@@ -3,6 +3,8 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +20,25 @@ jobs:
       - run: npm install
       - run: npx cap add android
       - run: npx cap sync android
+      - name: Use the same signing key every build (so updates install over the old app)
+        run: |
+          mkdir -p ~/.android
+          cp keys/debug.keystore ~/.android/debug.keystore
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk PlusOuMoins.apk
       - uses: actions/upload-artifact@v4
         with:
           name: plus-ou-moins-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: PlusOuMoins.apk
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest PlusOuMoins.apk \
+            --title "Plus ou Moins - dernière version" \
+            --notes "Télécharge **PlusOuMoins.apk** ci-dessous, ouvre-le sur ton téléphone Android et installe-le (autorise les sources inconnues si Android le demande). Mis à jour à chaque modification du jeu." \
+            --latest
