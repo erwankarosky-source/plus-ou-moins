@@ -1,0 +1,9 @@
+{
+  "name": "Plus ou Moins",
+  "short_name": "Plus ou Moins",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#ffeff5",
+  "theme_color": "#ffeff5"
+}

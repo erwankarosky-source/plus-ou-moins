@@ -2,7 +2,12 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffeff5">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Plus ou Moins</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;800&display=swap">
@@ -106,7 +111,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body {
   background-color: var(--bg);
   background-image: radial-gradient(var(--dot) 2px, transparent 2px);
@@ -116,13 +121,16 @@ body {
   font-weight: 600;
   font-size: 16px;
   line-height: 1.4;
-  padding-block: 12px;
+  position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   -webkit-tap-highlight-color: transparent;
 }
-.app { max-width: 440px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
-.view { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.app { max-width: 440px; margin: 0 auto; height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.view { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.view::-webkit-scrollbar { display: none; }
 h1, h2, p { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
@@ -159,7 +167,9 @@ button:disabled { cursor: default; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 /* welcome + menu */
-#welcome, #menu { justify-content: center; text-align: center; gap: 14px; padding-block: 2vh; }
+#welcome, #menu { text-align: center; gap: 14px; padding-block: 2vh; }
+#welcome > :first-child, #menu > :first-child { margin-top: auto; }
+#welcome > :last-child, #menu > :last-child { margin-bottom: auto; }
 #welcome h1, #menu h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 11vw, 3rem); font-weight: 700; line-height: 1; letter-spacing: -0.01em; text-wrap: balance; }
 #menu h1 .p { color: var(--up); }
 #menu h1 .m { color: var(--down); }
@@ -309,7 +319,7 @@ button:disabled { cursor: default; }
 .slot .pet { width: 48px; }
 .slot .sn { font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .slot .selbtn { min-height: 32px; font-size: 0.8rem; border-radius: 12px; padding: 0 6px; box-shadow: 0 2px 0 var(--line); }
-.pbox { justify-items: stretch; text-align: left; align-content: start; max-height: calc(100vh - 32px); overflow-y: auto; }
+.pbox { justify-items: stretch; text-align: left; align-content: start; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
 .plist { display: grid; gap: 8px; }
 .prow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--bg); border: 2px solid var(--line); border-radius: 16px; padding: 6px 10px; }
 .prow:disabled { opacity: 0.45; }
@@ -333,7 +343,7 @@ button:disabled { cursor: default; }
 .pcard .acts { display: grid; gap: 6px; width: 100%; }
 
 /* hatch */
-.hatch { position: fixed; inset: 0; z-index: 30; background: rgba(40, 20, 45, 0.74); display: grid; place-items: center; padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.hatch { position: fixed; inset: 0; overflow-y: auto; z-index: 30; background: rgba(40, 20, 45, 0.74); display: grid; place-items: center; padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .hatch-box { width: 100%; max-width: 360px; background: var(--surface); border: 3px solid var(--line); border-radius: 28px; padding: 20px 16px; display: grid; gap: 12px; justify-items: center; text-align: center; }
 .egg-stage { width: 150px; }
 .egg-stage svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -373,7 +383,7 @@ button:disabled { cursor: default; }
 .scale { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
 .left { font-size: 0.85rem; color: var(--muted); }
 .left b { color: var(--fg); font-family: var(--font-display); }
-.history { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; }
+.history { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex: 1 1 34px; min-height: 34px; overflow-y: auto; }
 .chip { display: inline-flex; align-items: center; gap: 5px; border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 1px 11px; font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; }
 .chip i { font-style: normal; font-weight: 700; }
 .chip.plus i { color: var(--up); }
@@ -382,6 +392,7 @@ button:disabled { cursor: default; }
 #play { margin-top: auto; display: grid; gap: 10px; }
 .entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 3px solid var(--accent); border-radius: 22px; padding: 4px 6px 4px 18px; min-height: 66px; background: var(--surface); }
 .entry .digits { font-family: var(--font-display); font-size: 2.1rem; font-weight: 600; letter-spacing: 0.04em; min-width: 0; overflow-wrap: anywhere; }
+.entry .digits.long { font-size: 1.3rem; letter-spacing: 0; }
 .entry .digits.empty { color: var(--muted); font-weight: 400; font-size: 1.1rem; letter-spacing: 0; }
 .entry .go { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 16px; min-height: 52px; padding-inline: 20px; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; box-shadow: 0 3px 0 var(--accent-deep); flex: none; }
 .entry .go:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--accent-deep); }
@@ -406,6 +417,42 @@ button:disabled { cursor: default; }
 .toast { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 40; }
 .toast span { background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: 0.92rem; text-align: center; }
 
+/* small screens: everything must fit without scrolling the page */
+@media (max-height: 780px) {
+  .view { gap: 10px; }
+  .mascot-wrap { width: min(30vw, 112px); }
+  #welcome, #menu { gap: 10px; padding-block: 0; }
+  #welcome h1, #menu h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
+  .btn { min-height: 52px; font-size: 1.1rem; }
+  .tile { min-height: 64px; padding: 6px 4px; gap: 4px; }
+  .tile svg { width: 26px; height: 26px; }
+  #open-missions { min-height: 52px; }
+  .verdict { min-height: 6rem; }
+  .verdict .mascot { width: 64px; }
+  .word { font-size: clamp(2.4rem, 13vw, 3.6rem); }
+  .sub { min-height: 2.4em; margin-top: 2px; }
+  .stat b { font-size: 1.3rem; }
+  .entry { min-height: 56px; }
+  .entry .digits { font-size: 1.8rem; }
+  .pad { gap: 6px; }
+  .pad button { min-height: 46px; font-size: 1.3rem; }
+  .title { font-size: 1.7rem; }
+}
+@media (max-height: 640px) {
+  .view { gap: 6px; }
+  .mascot-wrap { width: min(24vw, 84px); }
+  .verdict { min-height: 4.6rem; }
+  .verdict .mascot { width: 52px; }
+  .word { font-size: clamp(2rem, 11vw, 2.8rem); }
+  .sub { min-height: 1.4em; font-size: 0.85rem; }
+  .stat { padding: 3px 10px; }
+  .stat b { font-size: 1.1rem; }
+  .pad button { min-height: 38px; font-size: 1.15rem; border-radius: 14px; }
+  .entry { min-height: 48px; }
+  .btn { min-height: 46px; }
+  .tile { min-height: 54px; }
+  .left { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .pop, .mascot-wrap, .egg-stage.shake svg { animation: none; }
   .egg-stage.flash svg { animation: none; opacity: 0; }
@@ -430,9 +477,10 @@ button:disabled { cursor: default; }
       <label for="su-pseudo">Choisis ton pseudo</label>
       <input id="su-pseudo" type="text" maxlength="14" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Entre 2 et 14 caractères">
       <label for="su-pw">Mot de passe</label>
-      <input id="su-pw" type="password" autocomplete="new-password" placeholder="Au moins 5 caractères">
+      <input id="su-pw" type="password" maxlength="40" autocomplete="new-password" placeholder="Au moins 5 caractères">
       <label for="su-pw2">Confirme le mot de passe</label>
-      <input id="su-pw2" type="password" autocomplete="new-password">
+      <input id="su-pw2" type="password" maxlength="40" autocomplete="new-password">
+      <p class="note">Lettres, chiffres et symboles courants uniquement (pas d'émoji).</p>
       <label class="check"><input type="checkbox" id="su-show"> Afficher les mots de passe</label>
       <button class="btn btn-main" id="signup-go" type="submit">Créer mon compte</button>
       <button class="linkbtn" type="button" data-back>Retour</button>
@@ -493,6 +541,7 @@ button:disabled { cursor: default; }
         Défis
       </button>
     </div>
+    <button class="linkbtn" id="fs" type="button" hidden>Plein écran</button>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
   </section>
@@ -763,14 +812,14 @@ button:disabled { cursor: default; }
     { id: "easy", name: "Facile", max: 10, par: 3, time: 20, mult: 1, digits: 2, range: "1 – 10", desc: "Pour s'échauffer." },
     { id: "normal", name: "Normal", max: 100, par: 6, time: 60, mult: 2, digits: 3, range: "1 – 100", desc: "Le classique." },
     { id: "hard", name: "Difficile", max: 1000, par: 9, time: 120, mult: 4, digits: 4, range: "1 – 1 000", desc: "Là, ça devient sérieux." },
-    { id: "nightmare", name: "Nightmare", max: Infinity, par: 24, time: 300, mult: 8, digits: 12, range: "1 – ∞", desc: "Aucune limite. Le nombre peut être énorme." }
+    { id: "nightmare", name: "Nightmare", max: Infinity, par: 24, time: 300, mult: 8, digits: 30, range: "1 – ∞", desc: "Aucune limite. Le nombre peut être énorme." }
   ];
   var RAR = [
-    { id: "commun", name: "Commun", coin: 3, score: 2, sell: 5 },
-    { id: "rare", name: "Rare", coin: 6, score: 4, sell: 20 },
-    { id: "epique", name: "Épique", coin: 10, score: 7, sell: 80 },
-    { id: "legendaire", name: "Légendaire", coin: 16, score: 11, sell: 300 },
-    { id: "mythique", name: "Mythique", coin: 25, score: 16, sell: 1200 }
+    { id: "commun", name: "Commun", coin: 3, score: 2, sell: 2 },
+    { id: "rare", name: "Rare", coin: 6, score: 4, sell: 6 },
+    { id: "epique", name: "Épique", coin: 10, score: 7, sell: 25 },
+    { id: "legendaire", name: "Légendaire", coin: 16, score: 11, sell: 100 },
+    { id: "mythique", name: "Mythique", coin: 25, score: 16, sell: 400 }
   ];
   var PETS = [
     { id: "cat", pct: 6, name: "Chaton", r: 0, kind: "coin", color: "#ffb36b" },
@@ -961,7 +1010,11 @@ button:disabled { cursor: default; }
     return weakHash(salt + ":" + pw);
   }
   var COMMON = ["azerty", "qwerty", "qwertz", "password", "motdepasse", "admin", "bonjour", "123456", "12345", "111111", "000000", "iloveyou", "abcdef", "passw0rd", "123123", "pass"];
+  var PW_OK = /^[\x21-\x7E\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+$/;
+  var PW_BAD = /[^\x21-\x7E\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]/g;
   function pwProblem(pw, pseudo) {
+    if (!PW_OK.test(pw)) return "Le mot de passe ne peut contenir que des lettres, des chiffres et des symboles courants (pas d'émoji, pas d'espace).";
+    if (pw.length > 40) return "Le mot de passe est limité à 40 caractères.";
     if (pw.length < 5) return "Le mot de passe doit faire au moins 5 caractères.";
     var low = pw.toLowerCase();
     var same = true, up = true, down = true, i;
@@ -1294,7 +1347,38 @@ button:disabled { cursor: default; }
       persist(mig);
     }
     if (!boardStarted) { boardStarted = true; startBoard(); }
+    startSession();
     goMenu();
+  }
+
+  /* ---------- one device per account: the newest login ejects the older one ---------- */
+  var sessUnsub = null;
+  function stopSession() {
+    if (sessUnsub) { try { sessUnsub(); } catch (e) {} sessUnsub = null; }
+    ctx.sid = null;
+  }
+  function startSession() {
+    stopSession();
+    if (!ctx.db || !ctx.uid) return;
+    var mySid = makeSalt(), ref = ctx.db.doc(playerPath());
+    ctx.sid = mySid;
+    ref.update({ sid: mySid, sidAt: Date.now() }).then(function () {
+      if (ctx.sid !== mySid || mode !== "account") return;
+      sessUnsub = ref.onSnapshot(function (sn) {
+        if (ctx.sid !== mySid || mode !== "account" || !sn.exists) return;
+        var d = sn.data() || {};
+        if (d.sid && d.sid !== mySid) kickedOut();
+      }, function () {});
+    }, function () {});
+  }
+  function kickedOut() {
+    stopSession();
+    lsDel("pm2.session");
+    mode = "none"; me = null;           // no more writes from this device
+    goWelcome();
+    try { FB.db.stopAll(); FB.auth.signOut(); } catch (e) {}
+    ctx.uid = null; ctx.existing = null; boardStarted = false; boards = {}; boardErrs = {};
+    setNote("Ton compte vient d'être ouvert sur un autre appareil. Tu as été déconnecté ici.", true);
   }
 
   async function onCreate(e) {
@@ -1385,6 +1469,7 @@ button:disabled { cursor: default; }
   }
   function logout() {
     if (mode === "account") {
+      stopSession();
       lsDel("pm2.session");
       try { FB.db.stopAll(); FB.auth.signOut(); } catch (e) {}
       ctx.uid = null; ctx.existing = null; boardStarted = false; boards = {}; boardErrs = {};
@@ -1414,8 +1499,9 @@ button:disabled { cursor: default; }
         $("del-note").classList.add("warn");
         return;
       }
+      stopSession();
       try { await ctx.db.doc(playerPath()).delete(); }
-      catch (err) { $("del-note").textContent = "La suppression a échoué. Réessaie dans un instant."; $("del-note").classList.add("warn"); return; }
+      catch (err) { startSession(); $("del-note").textContent = "La suppression a échoué. Réessaie dans un instant."; $("del-note").classList.add("warn"); return; }
       try { FB.db.stopAll(); await FB.auth.deleteUser(); } catch (err) { try { FB.auth.signOut(); } catch (e2) {} }
       ctx.existing = null; ctx.uid = null; boardStarted = false; boards = {}; boardErrs = {};
       lsDel("pm2.session");
@@ -1910,6 +1996,7 @@ button:disabled { cursor: default; }
     var d = $("digits");
     if (s.entry === "") { d.textContent = "Ton nombre"; d.classList.add("empty"); }
     else { d.textContent = fmtInt(s.entry); d.classList.remove("empty"); }
+    d.classList.toggle("long", s.entry.length > 12);
     $("go").disabled = s.entry === "";
   }
   function setSub(text, warn) {
@@ -1923,8 +2010,8 @@ button:disabled { cursor: default; }
     var L = lvlById(id) || s.L || LVLS[1];
     s.L = L; s.lvl = L.id; boardLvl = L.id; s.duel = duel || null; s.duelEnded = false;
     var rf = duel ? seeded(duel.seed) : Math.random;
-    s.secret = L.max === Infinity ? Math.max(1, Math.floor(Math.pow(10, 2 + rf() * 7))) : 1 + Math.floor(rf() * L.max);
-    s.low = 1; s.high = L.max; s.guesses = []; s.entry = "";
+    s.secret = L.max === Infinity ? BigInt(Math.max(1, Math.floor(Math.pow(10, 2 + rf() * 7)))) : 1 + Math.floor(rf() * L.max);
+    s.low = L.max === Infinity ? 1n : 1; s.high = L.max; s.guesses = []; s.entry = "";
     s.phase = "playing";
     s.t0 = performance.now(); s.elapsed = 0;
     stopTimer();
@@ -1951,16 +2038,19 @@ button:disabled { cursor: default; }
     $("time").textContent = fmtTime(s.elapsed);
   }
 
+  function inc(x) { return typeof x === "bigint" ? x + 1n : x + 1; }
+  function dec(x) { return typeof x === "bigint" ? x - 1n : x - 1; }
   function submit() {
     if (s.phase !== "playing" || s.entry === "") return;
-    var n = parseInt(s.entry, 10), L = s.L;
-    if (isNaN(n) || n < 1 || n > L.max) {
+    var L = s.L;
+    var n = L.max === Infinity ? BigInt(s.entry) : parseInt(s.entry, 10);   // Nightmare uses BigInt: no precision limit
+    if ((typeof n === "number" && isNaN(n)) || n < 1 || n > L.max) {
       setSub("Choisis un nombre entre 1 et " + fmtInt(L.max) + ".", true);
       s.entry = ""; renderEntry();
       return;
     }
     if (n < s.low || n > s.high) {
-      setSub(fmtInt(n) + " est déjà exclu. Le nombre est " + (s.high === Infinity ? "plus grand que " + fmtInt(s.low - 1) : "entre " + fmtInt(s.low) + " et " + fmtInt(s.high)) + ".", true);
+      setSub(fmtInt(n) + " est déjà exclu. Le nombre est " + (s.high === Infinity ? "plus grand que " + fmtInt(dec(s.low)) : "entre " + fmtInt(s.low) + " et " + fmtInt(s.high)) + ".", true);
       s.entry = ""; renderEntry();
       return;
     }
@@ -1971,13 +2061,13 @@ button:disabled { cursor: default; }
       return;
     }
     if (n < s.secret) {
-      s.low = n + 1;
+      s.low = inc(n);
       s.guesses.push({ n: n, dir: "plus" });
       w.className = "word plus"; w.textContent = "Plus";
       setSub("Le nombre est plus grand que " + fmtInt(n) + ".");
       setMascot("mascot-game", "up");
     } else {
-      s.high = n - 1;
+      s.high = dec(n);
       s.guesses.push({ n: n, dir: "moins" });
       w.className = "word moins"; w.textContent = "Moins";
       setSub("Le nombre est plus petit que " + fmtInt(n) + ".");
@@ -2051,10 +2141,14 @@ button:disabled { cursor: default; }
 
   function renderRange() {
     var L = s.L;
-    var remaining = s.high - s.low + 1;
+    var remaining = L.max === Infinity ? Infinity : s.high - s.low + 1;
     if (L.max !== Infinity) {
-      $("fill").style.left = ((s.low - 1) / L.max) * 100 + "%";
-      $("fill").style.width = (remaining / L.max) * 100 + "%";
+      /* bars sit exactly on the dots: the dot of number n is at (n - 0.5) / max */
+      var won = s.phase === "won";
+      var a = won ? (s.secret - 1) / L.max : Math.max(0, (s.low - 1.5) / L.max);
+      var z = won ? s.secret / L.max : Math.min(1, (s.high + 0.5) / L.max);
+      $("fill").style.left = "calc(" + (a * 100) + "% - 1.5px)";
+      $("fill").style.width = "calc(" + ((z - a) * 100) + "% + 3px)";
       var track = $("track");
       var old = track.querySelectorAll(".pin");
       for (var i = 0; i < old.length; i++) track.removeChild(old[i]);
@@ -2070,7 +2164,7 @@ button:disabled { cursor: default; }
       $("left").textContent = "";
     } else if (L.max === Infinity) {
       $("span-label").textContent = "";
-      $("left").innerHTML = s.low > 1 ? 'Le nombre est plus grand que <b>' + fmtInt(s.low - 1) + '</b>. Aucune limite.' : "Aucune limite : le nombre peut être énorme.";
+      $("left").innerHTML = s.low > 1 ? 'Le nombre est plus grand que <b>' + fmtInt(dec(s.low)) + '</b>. Aucune limite.' : "Aucune limite : le nombre peut être énorme.";
     } else {
       $("span-label").textContent = fmtInt(s.low) + " – " + fmtInt(s.high);
       $("left").innerHTML = "Il reste <b>" + fmtInt(remaining) + "</b> nombre" + (remaining > 1 ? "s" : "") + " possible" + (remaining > 1 ? "s" : "") + ".";
@@ -2601,6 +2695,15 @@ button:disabled { cursor: default; }
     if (e.target && e.target.id === "inv-only") { invOnly = e.target.checked; renderInv(); }
   });
   $("logout").addEventListener("click", logout);
+  (function () {
+    var de = document.documentElement, fs = $("fs");
+    if (!(de.requestFullscreen && document.fullscreenEnabled)) return;
+    fs.hidden = false;
+    fs.addEventListener("click", function () {
+      if (document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen({ navigationUI: "hide" }).catch(function () {});
+    });
+    document.addEventListener("fullscreenchange", function () { fs.textContent = document.fullscreenElement ? "Quitter le plein écran" : "Plein écran"; });
+  })();
   $("w-guest").addEventListener("click", playAsGuest);
 
   $("w-create").addEventListener("click", function () {
@@ -2620,6 +2723,12 @@ button:disabled { cursor: default; }
   $("su-show").addEventListener("change", function () {
     var t = this.checked ? "text" : "password";
     $("su-pw").type = t; $("su-pw2").type = t;
+  });
+  ["su-pw", "su-pw2"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var clean = this.value.replace(PW_BAD, "");
+      if (clean !== this.value) { this.value = clean; setNote("Caractère non autorisé retiré : seuls les lettres, chiffres et symboles courants sont acceptés.", true); }
+    });
   });
   $("signup").addEventListener("submit", onCreate);
   $("login").addEventListener("submit", onLogin);

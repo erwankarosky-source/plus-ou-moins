@@ -20,6 +20,40 @@ jobs:
       - run: npm install
       - run: npx cap add android
       - run: npx cap sync android
+      - name: Fullscreen on Android (hide status and navigation bars)
+        run: |
+          mkdir -p android/app/src/main/java/com/erwan/plusoumoins
+          cat > android/app/src/main/java/com/erwan/plusoumoins/MainActivity.java <<'JAVA'
+          package com.erwan.plusoumoins;
+
+          import android.os.Bundle;
+          import android.view.Window;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              hideBars();
+            }
+
+            @Override
+            public void onWindowFocusChanged(boolean hasFocus) {
+              super.onWindowFocusChanged(hasFocus);
+              if (hasFocus) hideBars();
+            }
+
+            private void hideBars() {
+              Window w = getWindow();
+              WindowInsetsControllerCompat c = WindowCompat.getInsetsController(w, w.getDecorView());
+              c.hide(WindowInsetsCompat.Type.systemBars());
+              c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+          }
+          JAVA
       - name: Use the same signing key every build (so updates install over the old app)
         run: |
           mkdir -p ~/.android
