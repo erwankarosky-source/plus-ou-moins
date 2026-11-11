@@ -122,7 +122,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-top: max(12px, env(safe-area-inset-top, 0px), var(--sat, 0px));
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -380,8 +380,8 @@ button:disabled { cursor: default; }
 .fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, right 0.3s ease; }
 .pin { position: absolute; top: 4px; width: 8px; height: 8px; margin-left: -4px; margin-top: 1px; background: var(--muted); border-radius: 50%; opacity: 0.7; }
 .pin.secret { background: var(--accent); width: 12px; height: 12px; margin-left: -6px; margin-top: -1px; opacity: 1; }
-.scale > :first-child { padding-left: 4px; }
-.scale { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
+#min-label, #max-label { position: absolute; top: 0; transform: translateX(-50%); }
+.scale { position: relative; display: flex; justify-content: center; min-height: 1.3em; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
 .left { font-size: 0.85rem; color: var(--muted); }
 .left b { color: var(--fg); font-family: var(--font-display); }
 .history { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex: 1 1 34px; min-height: 34px; overflow-y: auto; }
@@ -676,7 +676,7 @@ button:disabled { cursor: default; }
     <div class="range">
       <div id="range-box" class="range">
         <div class="track" id="track"><div class="fill" id="fill"></div></div>
-        <div class="scale"><span>1</span><span id="span-label"></span><span id="max-label">100</span></div>
+        <div class="scale"><span id="min-label">1</span><span id="span-label"></span><span id="max-label">100</span></div>
       </div>
       <div class="left" id="left"></div>
     </div>
@@ -2143,9 +2143,11 @@ button:disabled { cursor: default; }
     var L = s.L;
     var remaining = L.max === Infinity ? Infinity : s.high - s.low + 1;
     if (L.max !== Infinity) {
-      /* Number n sits at (n-1)/(max-1): 1 under the left label, max under the right label.
-         Bars and dots all use the same position, inset 7px so end dots are not cut. */
-      var P = function (n) { return "(7px + (100% - 14px) * " + ((n - 1) / (L.max - 1)) + ")"; };
+      /* Number n sits at n / max of the track (5 of 10 = exact middle, max = right end).
+         Bars, dots and the end labels all use the same position, inset 7px so end dots are not cut. */
+      var P = function (n) { return "(7px + (100% - 14px) * " + (n / L.max) + ")"; };
+      $("min-label").style.left = "calc" + P(1);
+      $("max-label").style.left = "calc" + P(L.max);
       var f = $("fill"), won = s.phase === "won";
       if (won) {                       // both bars collapse right under the found dot
         f.style.left = "calc(" + P(s.secret) + " - 3px)";
@@ -2659,6 +2661,14 @@ button:disabled { cursor: default; }
     if (ctx.existing && ctx.uid && accountsAvailable()) { loginAccount(ctx.existing); return; }
     renderWelcome();
   }
+
+  /* Android app: the game is drawn edge to edge; the app tells us how tall the camera notch is */
+  function readNativeInsets() {
+    try { if (window.PMNative && window.PMNative.safeTop) document.documentElement.style.setProperty("--sat", window.PMNative.safeTop() + "px"); } catch (e) {}
+  }
+  readNativeInsets();
+  window.addEventListener("resize", readNativeInsets);
+  window.addEventListener("focus", readNativeInsets);
 
   /* ---------- events ---------- */
   document.addEventListener("keydown", function (e) {
