@@ -377,9 +377,10 @@ button:disabled { cursor: default; }
 @keyframes pop { from { transform: scale(0.8); opacity: 0.3; } to { transform: none; opacity: 1; } }
 .range { display: grid; gap: 6px; }
 .track { position: relative; height: 22px; border-radius: 999px; background: var(--surface); border: 2px solid var(--line); overflow: hidden; }
-.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, width 0.3s ease; }
+.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, right 0.3s ease; }
 .pin { position: absolute; top: 4px; width: 8px; height: 8px; margin-left: -4px; margin-top: 1px; background: var(--muted); border-radius: 50%; opacity: 0.7; }
 .pin.secret { background: var(--accent); width: 12px; height: 12px; margin-left: -6px; margin-top: -1px; opacity: 1; }
+.scale > :first-child { padding-left: 4px; }
 .scale { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
 .left { font-size: 0.85rem; color: var(--muted); }
 .left b { color: var(--fg); font-family: var(--font-display); }
@@ -541,7 +542,6 @@ button:disabled { cursor: default; }
         Défis
       </button>
     </div>
-    <button class="linkbtn" id="fs" type="button" hidden>Plein écran</button>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
   </section>
@@ -2189,19 +2189,25 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     var L = s.L;
     var remaining = L.max === Infinity ? Infinity : s.high - s.low + 1;
     if (L.max !== Infinity) {
-      /* bars sit exactly on the dots: the dot of number n is at (n - 0.5) / max */
-      var won = s.phase === "won";
-      var a = won ? (s.secret - 1) / L.max : Math.max(0, (s.low - 1.5) / L.max);
-      var z = won ? s.secret / L.max : Math.min(1, (s.high + 0.5) / L.max);
-      $("fill").style.left = "calc(" + (a * 100) + "% - 1.5px)";
-      $("fill").style.width = "calc(" + ((z - a) * 100) + "% + 3px)";
+      /* Number n sits at (n-1)/(max-1): 1 under the left label, max under the right label.
+         Bars and dots all use the same position, inset 7px so end dots are not cut. */
+      var P = function (n) { return "(7px + (100% - 14px) * " + ((n - 1) / (L.max - 1)) + ")"; };
+      var f = $("fill"), won = s.phase === "won";
+      if (won) {                       // both bars collapse right under the found dot
+        f.style.left = "calc(" + P(s.secret) + " - 3px)";
+        f.style.right = "calc(100% - " + P(s.secret) + " - 3px)";
+      } else {
+        f.style.left = s.low <= 1 ? "0px" : "calc(" + P(s.low - 1) + " - 1.5px)";
+        f.style.right = s.high >= L.max ? "0px" : "calc(100% - " + P(s.high + 1) + " - 1.5px)";
+      }
+      f.style.width = "auto";
       var track = $("track");
       var old = track.querySelectorAll(".pin");
       for (var i = 0; i < old.length; i++) track.removeChild(old[i]);
       s.guesses.forEach(function (g) {
         var p = document.createElement("div");
         p.className = "pin" + (g.dir === "hit" ? " secret" : "");
-        p.style.left = ((g.n - 0.5) / L.max) * 100 + "%";
+        p.style.left = "calc" + P(g.n);
         track.appendChild(p);
       });
     }
@@ -2727,15 +2733,6 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (e.target && e.target.id === "inv-only") { invOnly = e.target.checked; renderInv(); }
   });
   $("logout").addEventListener("click", logout);
-  (function () {
-    var de = document.documentElement, fs = $("fs");
-    if (!(de.requestFullscreen && document.fullscreenEnabled)) return;
-    fs.hidden = false;
-    fs.addEventListener("click", function () {
-      if (document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen({ navigationUI: "hide" }).catch(function () {});
-    });
-    document.addEventListener("fullscreenchange", function () { fs.textContent = document.fullscreenElement ? "Quitter le plein écran" : "Plein écran"; });
-  })();
   $("w-guest").addEventListener("click", playAsGuest);
 
   $("w-create").addEventListener("click", function () {
