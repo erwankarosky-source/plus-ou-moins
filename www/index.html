@@ -122,7 +122,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-top: max(12px, env(safe-area-inset-top, 0px), var(--sat, 0px));
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -377,10 +377,13 @@ button:disabled { cursor: default; }
 @keyframes pop { from { transform: scale(0.8); opacity: 0.3; } to { transform: none; opacity: 1; } }
 .range { display: grid; gap: 6px; }
 .track { position: relative; height: 22px; border-radius: 999px; background: var(--surface); border: 2px solid var(--line); overflow: hidden; }
-.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, width 0.3s ease; }
+.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, right 0.3s ease; }
 .pin { position: absolute; top: 4px; width: 8px; height: 8px; margin-left: -4px; margin-top: 1px; background: var(--muted); border-radius: 50%; opacity: 0.7; }
 .pin.secret { background: var(--accent); width: 12px; height: 12px; margin-left: -6px; margin-top: -1px; opacity: 1; }
-.scale { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
+#min-label, #max-label { position: absolute; top: 0; white-space: nowrap; }
+#min-label { left: 7px; transform: translateX(-50%); }
+#max-label { right: 0; padding-right: 2px; }
+.scale { position: relative; display: flex; justify-content: center; padding: 0 2px; min-height: 1.3em; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
 .left { font-size: 0.85rem; color: var(--muted); }
 .left b { color: var(--fg); font-family: var(--font-display); }
 .history { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex: 1 1 34px; min-height: 34px; overflow-y: auto; }
@@ -541,7 +544,6 @@ button:disabled { cursor: default; }
         Défis
       </button>
     </div>
-    <button class="linkbtn" id="fs" type="button" hidden>Plein écran</button>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
   </section>
@@ -676,7 +678,7 @@ button:disabled { cursor: default; }
     <div class="range">
       <div id="range-box" class="range">
         <div class="track" id="track"><div class="fill" id="fill"></div></div>
-        <div class="scale"><span>1</span><span id="span-label"></span><span id="max-label">100</span></div>
+        <div class="scale"><span id="min-label">1</span><span id="span-label"></span><span id="max-label">100</span></div>
       </div>
       <div class="left" id="left"></div>
     </div>
@@ -2143,19 +2145,26 @@ button:disabled { cursor: default; }
     var L = s.L;
     var remaining = L.max === Infinity ? Infinity : s.high - s.low + 1;
     if (L.max !== Infinity) {
-      /* bars sit exactly on the dots: the dot of number n is at (n - 0.5) / max */
-      var won = s.phase === "won";
-      var a = won ? (s.secret - 1) / L.max : Math.max(0, (s.low - 1.5) / L.max);
-      var z = won ? s.secret / L.max : Math.min(1, (s.high + 0.5) / L.max);
-      $("fill").style.left = "calc(" + (a * 100) + "% - 1.5px)";
-      $("fill").style.width = "calc(" + ((z - a) * 100) + "% + 3px)";
+      /* Number n sits at (n-1)/(max-1): 1 at the left end, max at the right end.
+         Bars, dots and the end labels all use the same position, inset 7px so end dots are not cut. */
+      var P = function (n) { return "(7px + (100% - 14px) * " + ((n - 1) / (L.max - 1)) + ")"; };
+
+      var f = $("fill"), won = s.phase === "won";
+      if (won) {                       // both bars collapse right under the found dot
+        f.style.left = "calc(" + P(s.secret) + " - 3px)";
+        f.style.right = "calc(100% - " + P(s.secret) + " - 3px)";
+      } else {
+        f.style.left = s.low <= 1 ? "0px" : "calc(" + P(s.low - 1) + " - 1.5px)";
+        f.style.right = s.high >= L.max ? "0px" : "calc(100% - " + P(s.high + 1) + " - 1.5px)";
+      }
+      f.style.width = "auto";
       var track = $("track");
       var old = track.querySelectorAll(".pin");
       for (var i = 0; i < old.length; i++) track.removeChild(old[i]);
       s.guesses.forEach(function (g) {
         var p = document.createElement("div");
         p.className = "pin" + (g.dir === "hit" ? " secret" : "");
-        p.style.left = ((g.n - 0.5) / L.max) * 100 + "%";
+        p.style.left = "calc" + P(g.n);
         track.appendChild(p);
       });
     }
@@ -2654,6 +2663,14 @@ button:disabled { cursor: default; }
     renderWelcome();
   }
 
+  /* Android app: the game is drawn edge to edge; the app tells us how tall the camera notch is */
+  function readNativeInsets() {
+    try { if (window.PMNative && window.PMNative.safeTop) document.documentElement.style.setProperty("--sat", window.PMNative.safeTop() + "px"); } catch (e) {}
+  }
+  readNativeInsets();
+  window.addEventListener("resize", readNativeInsets);
+  window.addEventListener("focus", readNativeInsets);
+
   /* ---------- events ---------- */
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !$("picker").hidden) { closePicker(); return; }
@@ -2695,15 +2712,6 @@ button:disabled { cursor: default; }
     if (e.target && e.target.id === "inv-only") { invOnly = e.target.checked; renderInv(); }
   });
   $("logout").addEventListener("click", logout);
-  (function () {
-    var de = document.documentElement, fs = $("fs");
-    if (!(de.requestFullscreen && document.fullscreenEnabled)) return;
-    fs.hidden = false;
-    fs.addEventListener("click", function () {
-      if (document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen({ navigationUI: "hide" }).catch(function () {});
-    });
-    document.addEventListener("fullscreenchange", function () { fs.textContent = document.fullscreenElement ? "Quitter le plein écran" : "Plein écran"; });
-  })();
   $("w-guest").addEventListener("click", playAsGuest);
 
   $("w-create").addEventListener("click", function () {
