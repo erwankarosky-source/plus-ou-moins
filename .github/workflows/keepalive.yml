@@ -1,0 +1,20 @@
+name: Keep Supabase awake
+# Supabase pauses free projects after a week without activity.
+# This pings the server once a day so the game never goes to sleep.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ping
+        run: |
+          URL=$(grep -o 'url: "https://[a-z0-9-]*\.supabase\.co"' www/index.html | head -1 | cut -d'"' -f2)
+          KEY=$(grep -o 'key: "[^"]*"' www/index.html | head -1 | cut -d'"' -f2)
+          if [ -z "$URL" ] || echo "$KEY" | grep -q VOTRE; then echo "Supabase not configured yet, nothing to ping."; exit 0; fi
+          curl -fsS -X POST "$URL/rest/v1/rpc/get_config" -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}' | head -c 200
