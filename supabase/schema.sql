@@ -56,7 +56,8 @@ insert into cfg_eggs (id, name, price, odds, uni) values
   ('cosmique', 'Œuf cosmique', 500, '{0,45,38,14,3}', 'cosmos')
 on conflict (id) do nothing;
 insert into cfg_settings (key, value) values
-  ('shiny_chance', 3), ('shiny_mult', 1.5), ('shiny_sell_mult', 4), ('uni_weight', 5), ('coin_div', 150)
+  ('shiny_chance', 3), ('shiny_mult', 1.5), ('shiny_sell_mult', 4), ('uni_weight', 5), ('coin_div', 150),
+  ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5)
 on conflict (key) do nothing;
 insert into cfg_daily (day_idx, coins, egg) values
   (0, 15, null), (1, 20, null), (2, 25, null), (3, 35, null), (4, 45, null), (5, 60, null), (6, null, 'etoile')
@@ -92,6 +93,9 @@ create table if not exists profiles (
   sid text,
   created_at timestamptz not null default now()
 );
+alter table profiles add column if not exists trophies int not null default 0 check (trophies >= 0);
+alter table profiles add column if not exists duel_wins int not null default 0;
+alter table profiles add column if not exists duel_losses int not null default 0;
 create index if not exists profiles_b_easy on profiles (b_easy desc);
 create index if not exists profiles_b_normal on profiles (b_normal desc);
 create index if not exists profiles_b_hard on profiles (b_hard desc);
@@ -111,12 +115,14 @@ create table if not exists games (
 );
 create index if not exists games_uid on games (uid);
 
+-- Duels : un duel = deux joueurs, un nombre secret partagé, le premier qui le trouve gagne.
+-- (Les anciennes "salles à code" n'existent plus : tout passe par le matchmaking.)
 create table if not exists duels (
   code text primary key,
   lvl text not null references cfg_levels (id),
-  host uuid not null,
-  hname text not null,
-  status text not null default 'waiting',
+  host uuid,
+  hname text,
+  status text not null default 'playing',      -- playing | done | closed
   started_at timestamptz,
   winner uuid,
   winner_name text,
@@ -124,6 +130,14 @@ create table if not exists duels (
   winner_time numeric,
   created_at timestamptz not null default now()
 );
+alter table duels alter column host drop not null;
+alter table duels alter column hname drop not null;
+alter table duels add column if not exists mode text not null default 'casual';   -- casual | ranked
+alter table duels add column if not exists p1 uuid;
+alter table duels add column if not exists p2 uuid;
+alter table duels add column if not exists reason text;                          -- found | forfeit | timeout
+alter table duels add column if not exists delta_w int not null default 0;       -- trophées gagnés par le vainqueur
+alter table duels add column if not exists delta_l int not null default 0;       -- trophées perdus par le perdant
 create table if not exists duel_secrets (code text primary key references duels (code) on delete cascade, secret bigint not null);
 create table if not exists duel_players (
   code text not null references duels (code) on delete cascade,
@@ -133,6 +147,20 @@ create table if not exists duel_players (
   left_room boolean not null default false,
   primary key (code, uid)
 );
+alter table duel_players add column if not exists last_seen timestamptz not null default now();
+create index if not exists duel_players_uid on duel_players (uid);
+create index if not exists duels_status on duels (status);
+
+-- File d'attente du matchmaking : une seule ligne par joueur (donc jamais deux recherches en même temps).
+create table if not exists duel_queue (
+  uid uuid primary key references profiles (id) on delete cascade,
+  mode text not null check (mode in ('casual', 'ranked')),
+  lvl text not null references cfg_levels (id),
+  trophies int not null default 0,
+  joined_at timestamptz not null default now(),
+  last_seen timestamptz not null default now(),
+  matched_code text
+);
 
 -- Sécurité : RLS activée partout. Seuls les réglages (cfg_*) sont lisibles.
 alter table profiles enable row level security;
@@ -140,6 +168,7 @@ alter table games enable row level security;
 alter table duels enable row level security;
 alter table duel_secrets enable row level security;
 alter table duel_players enable row level security;
+alter table duel_queue enable row level security;
 alter table cfg_levels enable row level security;
 alter table cfg_rarities enable row level security;
 alter table cfg_pets enable row level security;
@@ -155,7 +184,7 @@ begin
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
-revoke all on profiles, games, duels, duel_secrets, duel_players from anon, authenticated;
+revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue from anon, authenticated;
 revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
 
 -- =====================================================================
@@ -172,7 +201,7 @@ set search_path = public as $$
   select jsonb_build_object(
     'name', name, 'best', best, 'bestLvl', best_lvl,
     'b_easy', b_easy, 'b_normal', b_normal, 'b_hard', b_hard, 'b_nightmare', b_nightmare,
-    'games', games, 'coins', coins, 'hatched', hatched, 'inv', inv, 'team', team,
+    'games', games, 'coins', coins, 'hatched', hatched, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
     'mp', mp, 'mc', mc, 'today', _today()::text)
@@ -321,18 +350,19 @@ begin
   return jsonb_build_object('gid', v_gid);
 end $$;
 
--- Perdant d'un duel : on clôt sa partie et on révèle le nombre.
-create or replace function _lose_duel_game(p_game games) returns jsonb language plpgsql volatile
+-- Fin d'un duel pour un joueur : on clôt sa partie et on révèle le nombre (le duel est forcément terminé).
+create or replace function _duel_end(p_game games) returns jsonb language plpgsql volatile
 set search_path = public as $$
-declare d duels;
+declare d duels; v_dir text;
 begin
   select * into d from duels where code = p_game.duel_code;
-  if p_game.status = 'playing' then
-    update games set status = 'lost' where id = p_game.id;
-    update profiles set games = games + 1 where id = p_game.uid;
-  end if;
-  return jsonb_build_object('dir', 'lost', 'secret', p_game.secret,
-    'winner', jsonb_build_object('uid', d.winner, 'name', d.winner_name, 'tries', d.winner_tries, 'time', d.winner_time),
+  v_dir := case when d.status = 'closed' then 'closed' when d.winner = p_game.uid then 'won' else 'lost' end;
+  update games set status = case when v_dir = 'won' then 'won' else 'lost' end where id = p_game.id and status = 'playing';
+  return jsonb_build_object('dir', v_dir, 'secret', p_game.secret, 'mode', d.mode, 'reason', d.reason,
+    'winner', case when d.winner is null then null else
+      jsonb_build_object('uid', d.winner, 'name', d.winner_name, 'tries', d.winner_tries, 'time', d.winner_time) end,
+    'trophies', case when d.mode <> 'ranked' or v_dir = 'closed' then 0
+                     when v_dir = 'won' then d.delta_w else -d.delta_l end,
     'profile', _profile_json(p_game.uid));
 end $$;
 
@@ -344,7 +374,11 @@ declare
   v_rec boolean := false; v_mp jsonb; m cfg_missions; v_name text; v_best bigint; v_lvl_best bigint; v_newmp boolean := false;
 begin
   select * into g from games where id = p_gid and uid = v_uid for update;
-  if not found or g.status <> 'playing' then raise exception 'no_game'; end if;
+  if not found then raise exception 'no_game'; end if;
+  if g.status <> 'playing' then
+    if g.duel_code is not null and g.status = 'lost' then return _duel_end(g); end if;   -- duel perdu entre-temps
+    raise exception 'no_game';
+  end if;
   if p_n is null or p_n !~ '^[0-9]{1,30}$' then raise exception 'bad_number'; end if;
   n := p_n::numeric;
   select * into L from cfg_levels where id = g.lvl;
@@ -353,7 +387,11 @@ begin
   v_duel := g.duel_code is not null;
   if v_duel then
     select * into d from duels where code = g.duel_code for update;
-    if d.winner is not null and d.winner <> v_uid then return _lose_duel_game(g); end if;
+    update duel_players set last_seen = now() where code = g.duel_code and uid = v_uid;
+    perform _duel_sweep(g.duel_code);
+    select * into d from duels where code = g.duel_code;
+    if d.status <> 'playing' then return _duel_end(g); end if;      -- duel déjà fini (adversaire gagnant, parti ou temps écoulé)
+    if d.started_at > now() then raise exception 'not_started'; end if;
   end if;
   v_tries := g.tries + 1;
   if n < g.secret then
@@ -365,15 +403,12 @@ begin
   end if;
 
   -- Trouvé !
-  v_el := extract(epoch from (now() - g.started_at));
+  v_el := extract(epoch from (now() - case when v_duel then d.started_at else g.started_at end));
   if v_duel then
-    update duels set status = 'done', winner = v_uid, winner_tries = v_tries, winner_time = round(v_el, 1),
-      winner_name = (select name from profiles where id = v_uid)
-      where code = g.duel_code and winner is null;
-    if not found then
+    if not _finish_duel(g.duel_code, v_uid, 'found', v_tries, round(v_el, 1)) then
       update games set tries = v_tries where id = g.id;
       select * into g from games where id = g.id;
-      return _lose_duel_game(g);
+      return _duel_end(g);
     end if;
   end if;
   v_a := round(700 * greatest(0.15, least(1, L.par::numeric / v_tries)))::int;
@@ -381,7 +416,7 @@ begin
   v_base := (v_a + v_t) * L.mult;
   if v_duel then bc := 0; bs := 0; else select b_coin, b_score into bc, bs from _team_bonus(v_uid); end if;
   v_total := round(v_base * (1 + bs / 100.0));
-  v_coins := greatest(1, round((v_total / _setting('coin_div')) * (1 + bc / 100.0)))::int;
+  v_coins := case when v_duel then 0 else greatest(1, round((v_total / _setting('coin_div')) * (1 + bc / 100.0)))::int end;
   update games set status = 'won', tries = v_tries where id = g.id;
   select best, case g.lvl when 'easy' then b_easy when 'normal' then b_normal when 'hard' then b_hard else b_nightmare end
     into v_best, v_lvl_best from profiles where id = v_uid;
@@ -405,23 +440,26 @@ begin
       end if;
     end loop;
     if v_newmp then update profiles set mp = v_mp where id = v_uid; end if;
-  else
-    update profiles set games = games + 1, coins = coins + v_coins where id = v_uid;
   end if;
   return jsonb_build_object('dir', 'hit', 'secret', g.secret, 'tries', v_tries, 'elapsed', round(v_el, 1),
     'a', v_a, 't', v_t, 'base', v_base, 'total', v_total, 'coins', v_coins, 'bcoin', bc, 'bscore', bs,
-    'record', v_rec, 'mission', v_newmp, 'duel', v_duel, 'profile', _profile_json(v_uid));
+    'record', v_rec, 'mission', v_newmp, 'duel', v_duel,
+    'trophies', case when v_duel then (select case when mode = 'ranked' then delta_w else 0 end from duels where code = g.duel_code) else 0 end,
+    'dmode', case when v_duel then (select mode from duels where code = g.duel_code) else null end,
+    'profile', _profile_json(v_uid));
 end $$;
 
+-- Le client appelle ceci quand il apprend que le duel est fini (adversaire gagnant, parti, annulé...).
 create or replace function finish_lost(p_sid text, p_gid uuid) returns jsonb language plpgsql volatile security definer
 set search_path = public as $$
 declare v_uid uuid := _me(p_sid); g games; d duels;
 begin
   select * into g from games where id = p_gid and uid = v_uid for update;
   if not found or g.duel_code is null then raise exception 'no_game'; end if;
+  perform _duel_sweep(g.duel_code);
   select * into d from duels where code = g.duel_code;
-  if d.winner is null or d.winner = v_uid then raise exception 'no_winner'; end if;
-  return _lose_duel_game(g);
+  if d.status = 'playing' then raise exception 'no_winner'; end if;
+  return _duel_end(g);
 end $$;
 
 -- ---------- Pets, œufs, revente ----------
@@ -518,99 +556,218 @@ begin
   return v_res;
 end $$;
 
--- ---------- Duels ----------
+-- ---------- Duels : matchmaking automatique ----------
+-- Anciennes fonctions à code : supprimées.
+drop function if exists create_duel(text, text);
+drop function if exists join_duel(text, text);
+drop function if exists leave_duel(text, text);
+drop function if exists start_duel(text, text);
+drop function if exists _duel_state(text);
+
 create or replace function _duel_state(p_code text) returns jsonb language sql stable
 set search_path = public as $$
-  select jsonb_build_object('code', d.code, 'lvl', d.lvl, 'host', d.host, 'hname', d.hname, 'status', d.status,
+  select jsonb_build_object('code', d.code, 'lvl', d.lvl, 'mode', d.mode, 'status', d.status, 'reason', d.reason,
+    'start_in', greatest(0, round(extract(epoch from (d.started_at - now())) * 1000))::int,
     'winner', case when d.winner is null then null else
        jsonb_build_object('uid', d.winner, 'name', d.winner_name, 'tries', d.winner_tries, 'time', d.winner_time) end,
-    'players', coalesce((select jsonb_object_agg(uid, jsonb_build_object('name', name,
-        'joined', (extract(epoch from joined_at) * 1000)::bigint, 'left', left_room))
-        from duel_players where code = d.code), '{}'))
+    'dw', d.delta_w, 'dl', d.delta_l,
+    'players', coalesce((select jsonb_agg(jsonb_build_object('uid', dp.uid, 'name', dp.name,
+        'trophies', coalesce((select trophies from profiles where id = dp.uid), 0)) order by dp.joined_at, dp.uid)
+        from duel_players dp where dp.code = d.code), '[]'))
   from duels d where d.code = p_code
 $$;
 
-create or replace function create_duel(p_sid text, p_lvl text) returns jsonb language plpgsql volatile security definer
+-- Le duel en cours d'un joueur (s'il y en a un).
+create or replace function _duel_active(p_uid uuid) returns text language sql stable
 set search_path = public as $$
-declare
-  v_uid uuid := _me(p_sid); v_name text; v_code text; i int; v_chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-begin
-  if not exists (select 1 from cfg_levels where id = p_lvl) then raise exception 'bad_level'; end if;
-  delete from duels where created_at < now() - interval '1 day';
-  select name into v_name from profiles where id = v_uid;
-  for i in 1..8 loop
-    v_code := '';
-    for j in 1..6 loop v_code := v_code || substr(v_chars, 1 + floor(random() * 32)::int, 1); end loop;
-    begin
-      insert into duels (code, lvl, host, hname) values (v_code, p_lvl, v_uid, v_name);
-      exit;
-    exception when unique_violation then v_code := null;
-    end;
-  end loop;
-  if v_code is null then raise exception 'no_code'; end if;
-  insert into duel_secrets (code, secret) values (v_code, _new_secret(p_lvl));
-  insert into duel_players (code, uid, name) values (v_code, v_uid, v_name);
-  return _duel_state(v_code);
-end $$;
+  select d.code from duels d join duel_players dp on dp.code = d.code
+  where dp.uid = p_uid and d.status = 'playing' order by d.created_at desc limit 1
+$$;
 
-create or replace function join_duel(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
-set search_path = public as $$
-declare v_uid uuid := _me(p_sid); d duels; v_name text; v_in boolean; v_cnt int;
-begin
-  select * into d from duels where code = upper(btrim(p_code)) for update;
-  if not found then raise exception 'no_room'; end if;
-  select exists (select 1 from duel_players where code = d.code and uid = v_uid and not left_room) into v_in;
-  if d.status <> 'waiting' then raise exception 'room_started'; end if;
-  select count(*) into v_cnt from duel_players where code = d.code and not left_room;
-  if not v_in and v_cnt >= 4 then raise exception 'room_full'; end if;
-  select name into v_name from profiles where id = v_uid;
-  insert into duel_players (code, uid, name) values (d.code, v_uid, v_name)
-    on conflict (code, uid) do update set left_room = false;
-  return _duel_state(d.code);
-end $$;
-
-create or replace function leave_duel(p_sid text, p_code text) returns boolean language plpgsql volatile security definer
-set search_path = public as $$
-declare v_uid uuid := _me(p_sid); d duels;
+-- Termine un duel UNE seule fois. Gère les trophées (duel classé seulement).
+-- Ne donne ni pièces ni trophées en duel occasionnel.
+create or replace function _finish_duel(p_code text, p_winner uuid, p_reason text, p_tries int, p_time numeric) returns boolean
+language plpgsql volatile set search_path = public as $$
+declare d duels; v_loser uuid; wt int; lt int; v_e numeric; v_dw int := 0; v_dl int := 0; v_k numeric := _setting('duel_k');
 begin
   select * into d from duels where code = p_code for update;
-  if not found or d.status <> 'waiting' then return false; end if;
-  if d.host = v_uid then update duels set status = 'closed' where code = d.code;
-  else update duel_players set left_room = true where code = d.code and uid = v_uid; end if;
+  if not found or d.status <> 'playing' or d.winner is not null then return false; end if;
+  v_loser := case when d.p1 = p_winner then d.p2 else d.p1 end;
+  -- on verrouille les deux profils dans un ordre fixe (pas de blocage croisé)
+  perform 1 from profiles where id in (d.p1, d.p2) order by id for update;
+  if d.mode = 'ranked' then
+    select trophies into wt from profiles where id = p_winner;
+    select trophies into lt from profiles where id = v_loser;
+    v_e := 1 / (1 + power(10, (lt - wt) / 200.0));          -- chance de gagner du vainqueur
+    v_dw := greatest(8, least(v_k, round(v_k * (1 - v_e))))::int;
+    v_dl := least(v_dw, lt);                                  -- jamais en dessous de 0
+    update profiles set trophies = trophies + v_dw, duel_wins = duel_wins + 1 where id = p_winner;
+    update profiles set trophies = trophies - v_dl, duel_losses = duel_losses + 1 where id = v_loser;
+  end if;
+  update profiles set games = games + 1 where id in (p_winner, v_loser);
+  update duels set status = 'done', winner = p_winner, reason = p_reason, winner_tries = p_tries, winner_time = p_time,
+    winner_name = (select name from profiles where id = p_winner), delta_w = v_dw, delta_l = v_dl
+    where code = p_code;
+  update games set status = 'won' where duel_code = p_code and uid = p_winner and status = 'playing';
+  update games set status = 'lost' where duel_code = p_code and uid = v_loser and status = 'playing';
   return true;
 end $$;
 
-create or replace function start_duel(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
+-- Détecte les abandons / déconnexions. Un joueur silencieux depuis trop longtemps perd par forfait ;
+-- si les deux sont partis, ou si le duel dure trop longtemps, il est annulé sans changer les trophées.
+create or replace function _duel_sweep(p_code text) returns void language plpgsql volatile set search_path = public as $$
+declare d duels; v_idle interval := make_interval(secs => _setting('duel_idle_s')::int);
+        s1 boolean; s2 boolean;
+begin
+  select * into d from duels where code = p_code for update;
+  if not found or d.status <> 'playing' then return; end if;
+  if d.started_at < now() - make_interval(mins => _setting('duel_max_min')::int) then
+    update duels set status = 'closed', reason = 'timeout' where code = p_code;
+    update games set status = 'lost' where duel_code = p_code and status = 'playing';
+    return;
+  end if;
+  select coalesce(bool_or(last_seen < now() - v_idle) filter (where uid = d.p1), true),
+         coalesce(bool_or(last_seen < now() - v_idle) filter (where uid = d.p2), true)
+    into s1, s2 from duel_players where code = p_code;
+  if s1 and s2 then
+    update duels set status = 'closed', reason = 'abandoned' where code = p_code;
+    update games set status = 'lost' where duel_code = p_code and status = 'playing';
+  elsif s1 then perform _finish_duel(p_code, d.p2, 'forfeit', null, null);
+  elsif s2 then perform _finish_duel(p_code, d.p1, 'forfeit', null, null);
+  end if;
+end $$;
+
+create or replace function _duel_matched(p_uid uuid, p_code text) returns jsonb language plpgsql volatile set search_path = public as $$
+begin
+  delete from duel_queue where uid = p_uid;
+  update duel_players set last_seen = now() where code = p_code and uid = p_uid;
+  return jsonb_build_object('status', 'matched', 'duel', _duel_state(p_code));
+end $$;
+
+-- Recherche d'adversaire. Le client rappelle cette fonction toutes les ~1,5 s tant qu'il cherche :
+-- c'est à la fois le "je suis toujours là" et une nouvelle tentative de rencontre (la tolérance de
+-- trophées s'élargit avec l'attente en mode classé).
+create or replace function matchmake(p_sid text, p_mode text, p_lvl text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare
+  v_uid uuid := _me(p_sid); v_code text; v_tr int; v_name text; q duel_queue; o duel_queue; v_n int;
+  v_win numeric; v_cd interval := make_interval(mins => _setting('ranked_cooldown_min')::int);
+begin
+  if p_mode not in ('casual', 'ranked') then raise exception 'bad_mode'; end if;
+  if not exists (select 1 from cfg_levels where id = p_lvl) then raise exception 'bad_level'; end if;
+  -- un seul matchmaking à la fois pour tout le monde : pas de doublons ni de double rencontre
+  perform pg_advisory_xact_lock(hashtext('pom_matchmaking'));
+  delete from duel_queue where (matched_code is null and last_seen < now() - interval '10 seconds')
+                            or (matched_code is not null and last_seen < now() - interval '90 seconds');
+
+  -- déjà dans un duel en cours ? on le reprend (jamais deux duels en même temps)
+  v_code := _duel_active(v_uid);
+  if v_code is not null then
+    perform _duel_sweep(v_code);
+    v_code := _duel_active(v_uid);
+    if v_code is not null then return _duel_matched(v_uid, v_code); end if;
+  end if;
+
+  select * into q from duel_queue where uid = v_uid;
+  if found and q.matched_code is not null then
+    if exists (select 1 from duels where code = q.matched_code and status = 'playing') then
+      return _duel_matched(v_uid, q.matched_code);
+    end if;
+    delete from duel_queue where uid = v_uid;
+  end if;
+
+  select trophies, name into v_tr, v_name from profiles where id = v_uid;
+  insert into duel_queue (uid, mode, lvl, trophies) values (v_uid, p_mode, p_lvl, v_tr)
+  on conflict (uid) do update set
+    joined_at = case when duel_queue.mode = excluded.mode and duel_queue.lvl = excluded.lvl and duel_queue.matched_code is null
+                     then duel_queue.joined_at else now() end,
+    mode = excluded.mode, lvl = excluded.lvl, trophies = excluded.trophies, last_seen = now(), matched_code = null;
+  select * into q from duel_queue where uid = v_uid;
+
+  -- candidat : même mode, même niveau, présent récemment, pas déjà en duel ; en classé : trophées proches
+  select oo.* into o from duel_queue oo
+  where oo.uid <> v_uid and oo.mode = p_mode and oo.lvl = p_lvl and oo.matched_code is null
+    and oo.last_seen > now() - interval '8 seconds'
+    and not exists (select 1 from duel_players dp join duels dd on dd.code = dp.code where dp.uid = oo.uid and dd.status = 'playing')
+    and (p_mode = 'casual' or (
+          abs(oo.trophies - q.trophies) <= _setting('mm_window')
+              + _setting('mm_window_step') * floor(extract(epoch from (now() - least(oo.joined_at, q.joined_at))))
+          and not exists (select 1 from duels x where x.mode = 'ranked' and x.created_at > now() - v_cd
+                          and ((x.p1 = v_uid and x.p2 = oo.uid) or (x.p1 = oo.uid and x.p2 = v_uid)))))
+  order by abs(oo.trophies - q.trophies), oo.joined_at
+  limit 1;
+
+  if found then
+    v_code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));
+    insert into duels (code, lvl, mode, status, started_at, p1, p2) values (v_code, p_lvl, p_mode, 'playing', now() + interval '4 seconds', o.uid, v_uid);
+    insert into duel_secrets (code, secret) values (v_code, _new_secret(p_lvl));
+    insert into duel_players (code, uid, name) select v_code, id, name from profiles where id in (o.uid, v_uid);
+    update duel_queue set matched_code = v_code where uid = o.uid;
+    return _duel_matched(v_uid, v_code);
+  end if;
+
+  select count(*) into v_n from duel_queue where mode = p_mode and lvl = p_lvl and matched_code is null and last_seen > now() - interval '8 seconds';
+  return jsonb_build_object('status', 'searching', 'waited', round(extract(epoch from (now() - q.joined_at)))::int, 'searching', v_n);
+end $$;
+
+-- Annuler la recherche. Si un adversaire vient d'être trouvé entre-temps, on ne peut plus annuler
+-- (sinon on pourrait fuir un duel classé que l'on sent perdu d'avance).
+create or replace function cancel_match(p_sid text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); q duel_queue; v_code text;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_matchmaking'));
+  v_code := _duel_active(v_uid);
+  if v_code is not null then return _duel_matched(v_uid, v_code); end if;
+  select * into q from duel_queue where uid = v_uid;
+  if found and q.matched_code is not null and exists (select 1 from duels where code = q.matched_code and status = 'playing') then
+    return _duel_matched(v_uid, q.matched_code);
+  end if;
+  delete from duel_queue where uid = v_uid;
+  return jsonb_build_object('status', 'cancelled');
+end $$;
+
+-- Sondage d'un duel (aussi le "je suis toujours connecté" : sans nouvelles pendant 30 s = forfait).
+create or replace function duel_state(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); v_state jsonb;
+begin
+  if not exists (select 1 from duel_players where code = p_code and uid = v_uid) then raise exception 'no_room'; end if;
+  update duel_players set last_seen = now() where code = p_code and uid = v_uid;
+  perform _duel_sweep(p_code);
+  v_state := _duel_state(p_code);
+  if v_state ->> 'status' <> 'playing' then v_state := v_state || jsonb_build_object('profile', _profile_json(v_uid)); end if;
+  return v_state;
+end $$;
+
+-- Abandon volontaire : défaite immédiate (en classé, les trophées sont perdus).
+create or replace function forfeit_duel(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
 set search_path = public as $$
 declare v_uid uuid := _me(p_sid); d duels;
 begin
   select * into d from duels where code = p_code for update;
-  if not found or d.host <> v_uid then raise exception 'no_room'; end if;
-  if d.status <> 'waiting' then raise exception 'room_started'; end if;
-  if (select count(*) from duel_players where code = d.code and not left_room) < 2 then raise exception 'not_enough_players'; end if;
-  update duels set status = 'playing', started_at = now() where code = d.code;
-  return _duel_state(d.code);
+  if not found or not exists (select 1 from duel_players where code = p_code and uid = v_uid) then raise exception 'no_room'; end if;
+  if d.status = 'playing' then
+    perform _finish_duel(p_code, case when d.p1 = v_uid then d.p2 else d.p1 end, 'forfeit', null, null);
+  end if;
+  return _duel_state(p_code) || jsonb_build_object('profile', _profile_json(v_uid));
 end $$;
 
-create or replace function duel_state(p_sid text, p_code text) returns jsonb language plpgsql stable security definer
-set search_path = public as $$
-declare v_uid uuid := _me(p_sid);
-begin
-  if not exists (select 1 from duel_players where code = p_code and uid = v_uid) then raise exception 'no_room'; end if;
-  return _duel_state(p_code);
-end $$;
-
+-- Chaque joueur crée sa propre partie (même nombre secret) ; elle démarre pour les deux à la même seconde.
 create or replace function duel_game(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
 set search_path = public as $$
 declare v_uid uuid := _me(p_sid); d duels; v_gid uuid; v_secret bigint;
 begin
   select * into d from duels where code = p_code;
   if not found or d.status <> 'playing' then raise exception 'no_room'; end if;
-  if not exists (select 1 from duel_players where code = p_code and uid = v_uid and not left_room) then raise exception 'no_room'; end if;
-  select secret into v_secret from duel_secrets where code = p_code;
-  delete from games where uid = v_uid and duel_code = p_code;
-  insert into games (uid, lvl, secret, duel_code) values (v_uid, d.lvl, v_secret, p_code) returning id into v_gid;
-  return jsonb_build_object('gid', v_gid, 'lvl', d.lvl);
+  if not exists (select 1 from duel_players where code = p_code and uid = v_uid) then raise exception 'no_room'; end if;
+  select id into v_gid from games where uid = v_uid and duel_code = p_code and status = 'playing' limit 1;
+  if v_gid is null then
+    select secret into v_secret from duel_secrets where code = p_code;
+    insert into games (uid, lvl, secret, duel_code, started_at) values (v_uid, d.lvl, v_secret, p_code, d.started_at) returning id into v_gid;
+  end if;
+  return jsonb_build_object('gid', v_gid, 'lvl', d.lvl,
+    'start_in', greatest(0, round(extract(epoch from (d.started_at - now())) * 1000))::int);
 end $$;
 
 -- ---------- Droits : seules les fonctions publiques sont appelables ----------
