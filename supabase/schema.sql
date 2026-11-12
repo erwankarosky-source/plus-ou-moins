@@ -105,15 +105,25 @@ create index if not exists profiles_b_normal on profiles (b_normal desc);
 create index if not exists profiles_b_hard on profiles (b_hard desc);
 create index if not exists profiles_b_nightmare on profiles (b_nightmare desc);
 
--- Pseudos interdits (modifiable par l'administrateur dans Table Editor > blocked_names, ou avec admin_block_name).
---   mode 'exact'    : interdit seulement ce pseudo-là (ex. admin)
---   mode 'contains' : interdit tout pseudo qui CONTIENT le mot (ex. un gros mot)
+-- ---------- Liste noire CENTRALE (pseudos + noms de clubs) ----------
+-- Une seule table, gérée par l'administrateur (Table Editor > blocked_words, ou les fonctions admin_*).
+--   scope 'all'    : interdit pour les pseudos ET les noms de clubs
+--   scope 'player' : interdit seulement pour les pseudos
+--   scope 'club'   : interdit seulement pour les noms de clubs
+--   mode 'exact'    : interdit seulement ce nom-là (ex. admin)
+--   mode 'contains' : interdit tout nom qui CONTIENT le mot (ex. un gros mot)
+--   active = false  : mot désactivé sans le supprimer
 -- La comparaison ignore majuscules, accents, espaces, ponctuation, chiffres-lettres (4=a, 3=e, 0=o...) et lettres répétées.
-create table if not exists blocked_names (
-  word text primary key,
+create table if not exists blocked_words (
+  id bigint generated always as identity primary key,
+  word text not null,
+  norm text not null default '',
   mode text not null default 'contains' check (mode in ('exact', 'contains')),
+  scope text not null default 'all' check (scope in ('all', 'player', 'club')),
+  active boolean not null default true,
   note text,
-  added_at timestamptz not null default now()
+  added_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 -- Historique des changements de pseudo
 create table if not exists name_history (
@@ -123,10 +133,6 @@ create table if not exists name_history (
   new_name text not null,
   changed_at timestamptz not null default now()
 );
-insert into blocked_names (word, mode, note) values
-  ('admin', 'exact', 'réservé'), ('administrateur', 'exact', 'réservé'), ('moderateur', 'exact', 'réservé'),
-  ('modo', 'exact', 'réservé'), ('staff', 'exact', 'réservé'), ('support', 'exact', 'réservé'), ('plusoumoins', 'exact', 'réservé')
-on conflict (word) do nothing;
 
 create table if not exists games (
   id uuid primary key default gen_random_uuid(),
@@ -230,18 +236,6 @@ create table if not exists club_requests (
   primary key (club_id, uid)
 );
 create index if not exists club_requests_uid on club_requests (uid);
--- Noms de clubs interdits (modifiable dans Table Editor > blocked_club_names). La liste des pseudos interdits s'applique aussi.
-create table if not exists blocked_club_names (
-  word text primary key,
-  mode text not null default 'contains' check (mode in ('exact', 'contains')),
-  note text,
-  added_at timestamptz not null default now()
-);
-insert into blocked_club_names (word, mode, note) values
-  ('plusoumoins', 'exact', 'réservé'), ('officiel', 'exact', 'réservé'), ('admin', 'exact', 'réservé'),
-  ('staff', 'exact', 'réservé'), ('support', 'exact', 'réservé')
-on conflict (word) do nothing;
-
 -- Sécurité : RLS activée partout. Seuls les réglages (cfg_*) sont lisibles.
 alter table profiles enable row level security;
 alter table games enable row level security;
@@ -249,12 +243,11 @@ alter table duels enable row level security;
 alter table duel_secrets enable row level security;
 alter table duel_players enable row level security;
 alter table duel_queue enable row level security;
-alter table blocked_names enable row level security;
+alter table blocked_words enable row level security;
 alter table friendships enable row level security;
 alter table clubs enable row level security;
 alter table club_members enable row level security;
 alter table club_requests enable row level security;
-alter table blocked_club_names enable row level security;
 alter table friend_attempts enable row level security;
 alter table name_history enable row level security;
 alter table cfg_levels enable row level security;
@@ -272,7 +265,7 @@ begin
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
-revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history, friendships, friend_attempts, clubs, club_members, club_requests, blocked_club_names from anon, authenticated;
+revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_words, name_history, friendships, friend_attempts, clubs, club_members, club_requests from anon, authenticated;
 revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
 
 -- =====================================================================
@@ -408,16 +401,59 @@ set search_path = public as $$
            '(.)\1+', '\1', 'g')
 $$;
 
-create or replace function _name_blocked(p text) returns boolean language plpgsql stable security definer
+-- Garde-fou de la liste noire : chaque ajout ou modification (Table Editor ou fonctions admin)
+-- calcule la forme comparable du mot et refuse les mots inutilisables.
+create or replace function _blocked_words_guard() returns trigger language plpgsql
+set search_path = public as $$
+begin
+  new.word := btrim(coalesce(new.word, ''));
+  new.norm := _name_norm(new.word);
+  if new.norm = '' then raise exception 'bad_word'; end if;                                  -- rien de comparable (ex. "...")
+  if new.mode = 'contains' and char_length(new.norm) < 2 then raise exception 'bad_word'; end if;   -- 1 lettre bloquerait presque tout le monde
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists blocked_words_guard on blocked_words;
+create trigger blocked_words_guard before insert or update on blocked_words
+  for each row execute function _blocked_words_guard();
+drop index if exists blocked_words_unique;
+create unique index if not exists blocked_words_norm_scope on blocked_words (norm, scope);   -- un mot une seule fois par type de nom
+
+-- Reprise des anciennes listes (versions précédentes : blocked_names et blocked_club_names), puis suppression.
+do $$
+begin
+  if to_regclass('public.blocked_names') is not null then
+    insert into blocked_words (word, mode, scope, note, added_at)
+      select word, mode, 'all', note, added_at from blocked_names on conflict do nothing;
+    drop table blocked_names;
+  end if;
+  if to_regclass('public.blocked_club_names') is not null then
+    insert into blocked_words (word, mode, scope, note, added_at)
+      select word, mode, 'club', note, added_at from blocked_club_names on conflict do nothing;
+    drop table blocked_club_names;
+  end if;
+  -- doublons inutiles : un mot déjà interdit partout n'a pas besoin d'une ligne "clubs"
+  delete from blocked_words c using blocked_words a
+    where c.scope = 'club' and a.scope = 'all' and a.norm = c.norm and (a.mode = c.mode or a.mode = 'contains');
+end $$;
+-- Noms réservés (ajoutés seulement s'ils n'existent pas déjà ; on peut les modifier ou les supprimer ensuite)
+insert into blocked_words (word, mode, scope, note) values
+  ('admin', 'exact', 'all', 'réservé'), ('administrateur', 'exact', 'all', 'réservé'), ('moderateur', 'exact', 'all', 'réservé'),
+  ('modo', 'exact', 'all', 'réservé'), ('staff', 'exact', 'all', 'réservé'), ('support', 'exact', 'all', 'réservé'),
+  ('plusoumoins', 'exact', 'all', 'réservé'), ('officiel', 'exact', 'club', 'réservé')
+on conflict do nothing;
+
+-- Ce nom est-il interdit pour ce type de nom ? p_scope : 'player' (pseudo) ou 'club'.
+drop function if exists _name_blocked(text);
+create or replace function _name_blocked(p text, p_scope text default 'player') returns boolean language plpgsql stable security definer
 set search_path = public as $$
 declare n text := _name_norm(p);
 begin
   if n = '' then return false; end if;
   return exists (
-    select 1 from blocked_names b
-    where length(_name_norm(b.word)) > 0
-      and ((b.mode = 'exact' and _name_norm(b.word) = n)
-        or (b.mode = 'contains' and position(_name_norm(b.word) in n) > 0)));
+    select 1 from blocked_words b
+    where b.active and b.norm <> '' and b.scope in ('all', p_scope)
+      and ((b.mode = 'exact' and b.norm = n) or (b.mode = 'contains' and position(b.norm in n) > 0)));
 end $$;
 
 -- Règles d'un pseudo. Renvoie le pseudo nettoyé, ou lève : bad_name | forbidden_name | name_taken.
@@ -427,7 +463,7 @@ declare v text := btrim(regexp_replace(coalesce(p_name, ''), '[[:space:]]+', ' '
 begin
   if char_length(v) < 2 or char_length(v) > 14 then raise exception 'bad_name'; end if;
   if v !~ '^[[:alnum:] _.''-]+$' or v !~ '[[:alnum:]]' then raise exception 'bad_name'; end if;   -- lettres, chiffres, espace _ . ' -
-  if _name_blocked(v) then raise exception 'forbidden_name'; end if;
+  if _name_blocked(v, 'player') then raise exception 'forbidden_name'; end if;
   if exists (select 1 from profiles where name_lower = lower(v) and id is distinct from p_uid) then raise exception 'name_taken'; end if;
   return v;
 end $$;
@@ -607,18 +643,6 @@ begin
 end $$;
 
 -- ---------- Clubs ----------
-create or replace function _club_name_blocked(p text) returns boolean language plpgsql stable security definer
-set search_path = public as $$
-declare n text := _name_norm(p);
-begin
-  if n = '' then return false; end if;
-  return _name_blocked(p) or exists (
-    select 1 from blocked_club_names b
-    where length(_name_norm(b.word)) > 0
-      and ((b.mode = 'exact' and _name_norm(b.word) = n)
-        or (b.mode = 'contains' and position(_name_norm(b.word) in n) > 0)));
-end $$;
-
 -- Règles d'un nom de club : 3 à 20 caractères, mêmes caractères que les pseudos, unique, pas interdit.
 create or replace function _check_club_name(p_name text, p_id bigint) returns text language plpgsql stable security definer
 set search_path = public as $$
@@ -626,7 +650,7 @@ declare v text := btrim(regexp_replace(coalesce(p_name, ''), '[[:space:]]+', ' '
 begin
   if char_length(v) < 3 or char_length(v) > 20 then raise exception 'bad_name'; end if;
   if v !~ '^[[:alnum:] _.''-]+$' or v !~ '[[:alnum:]]' then raise exception 'bad_name'; end if;
-  if _club_name_blocked(v) then raise exception 'forbidden_name'; end if;
+  if _name_blocked(v, 'club') then raise exception 'forbidden_name'; end if;
   if exists (select 1 from clubs where name_lower = lower(v) and id is distinct from p_id) then raise exception 'name_taken'; end if;
   return v;
 end $$;
@@ -867,36 +891,75 @@ begin
   update profiles set name = p_new where id = p_id;
   return jsonb_build_object('id', p_id, 'old', v_old, 'new', (select name from profiles where id = p_id));
 end $$;
-create or replace function admin_block_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
+-- ===== Liste noire (administrateur) =====
+--   select admin_block_word('motinterdit');                          -- pseudos ET clubs, contient le mot
+--   select admin_block_word('officiel', 'exact', 'club', 'réservé');  -- seulement les noms de clubs, nom exact
+--   select admin_update_blocked_word(12, p_mode => 'exact');          -- modifier (id visible dans admin_blocked_words())
+--   select admin_set_blocked_word_active(12, false);                  -- désactiver sans supprimer
+--   select admin_unblock_word('motinterdit');                         -- supprimer (tous les types) ; ou admin_delete_blocked_word(12)
+--   select * from admin_blocked_words();                              -- voir la liste
+--   select admin_test_name('Gr0s Mot', 'player');                     -- ce nom serait-il accepté ?
+--   select * from admin_blocked_players();  select * from admin_blocked_clubs();   -- noms DÉJÀ pris qui sont (devenus) interdits
+create or replace function admin_block_word(p_word text, p_mode text default 'contains', p_scope text default 'all', p_note text default null) returns bigint
+language plpgsql volatile set search_path = public as $$
+declare v_id bigint;
+begin
+  insert into blocked_words (word, mode, scope, note) values (p_word, p_mode, p_scope, p_note)
+    on conflict (norm, scope) do update set active = true, mode = excluded.mode, word = excluded.word, note = coalesce(excluded.note, blocked_words.note)
+    returning id into v_id;
+  return v_id;
+end $$;
+create or replace function admin_update_blocked_word(p_id bigint, p_word text default null, p_mode text default null, p_scope text default null, p_note text default null) returns bigint
 language plpgsql volatile set search_path = public as $$
 begin
-  if length(_name_norm(p_word)) = 0 then raise exception 'bad_word'; end if;
-  insert into blocked_names (word, mode, note) values (btrim(p_word), p_mode, p_note)
-    on conflict (word) do update set mode = excluded.mode, note = coalesce(excluded.note, blocked_names.note);
-  return 'ok';
+  update blocked_words set word = coalesce(p_word, word), mode = coalesce(p_mode, mode), scope = coalesce(p_scope, scope), note = coalesce(p_note, note)
+    where id = p_id;
+  if not found then raise exception 'unknown_word'; end if;
+  return p_id;
 end $$;
-create or replace function admin_unblock_name(p_word text) returns text language plpgsql volatile
+create or replace function admin_set_blocked_word_active(p_id bigint, p_active boolean) returns bigint language plpgsql volatile
 set search_path = public as $$
-begin delete from blocked_names where lower(word) = lower(btrim(p_word)); return 'ok'; end $$;
+begin
+  update blocked_words set active = p_active where id = p_id;
+  if not found then raise exception 'unknown_word'; end if;
+  return p_id;
+end $$;
+create or replace function admin_delete_blocked_word(p_id bigint) returns text language plpgsql volatile
+set search_path = public as $$
+begin delete from blocked_words where id = p_id; return case when found then 'ok' else 'unknown' end; end $$;
+create or replace function admin_unblock_word(p_word text, p_scope text default null) returns int language plpgsql volatile
+set search_path = public as $$
+declare n int;
+begin
+  delete from blocked_words where norm = _name_norm(p_word) and (p_scope is null or scope = p_scope);
+  get diagnostics n = row_count;
+  return n;
+end $$;
+create or replace function admin_blocked_words() returns table (id bigint, word text, mode text, scope text, active boolean, note text, added_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select id, word, mode, scope, active, note, added_at from blocked_words order by scope, lower(word)
+$$;
+create or replace function admin_test_name(p_name text, p_scope text default 'player') returns text language plpgsql stable security definer
+set search_path = public as $$
+begin
+  if p_scope = 'club' then perform _check_club_name(p_name, null); else perform _check_name(p_name, null); end if;
+  return 'ok';
+exception when others then return sqlerrm;
+end $$;
+-- Anciens noms de commandes (gardés pour compatibilité) :
+create or replace function admin_block_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
+language sql volatile set search_path = public as $$ select admin_block_word(p_word, p_mode, 'all', p_note)::text; select 'ok' $$;
+create or replace function admin_unblock_name(p_word text) returns text language sql volatile
+set search_path = public as $$ select admin_unblock_word(p_word, 'all')::text; select 'ok' $$;
+create or replace function admin_block_club_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
+language sql volatile set search_path = public as $$ select admin_block_word(p_word, p_mode, 'club', p_note)::text; select 'ok' $$;
+create or replace function admin_unblock_club_name(p_word text) returns text language sql volatile
+set search_path = public as $$ select admin_unblock_word(p_word, 'club')::text; select 'ok' $$;
 create or replace function admin_blocked_players() returns table (id uuid, name text) language sql stable security definer
-set search_path = public as $$ select id, name from profiles where _name_blocked(name) order by name $$;
+set search_path = public as $$ select id, name from profiles where _name_blocked(name, 'player') order by name $$;
 
 -- Clubs (administrateur) :
---   select admin_block_club_name('motinterdit');   -- ou admin_block_club_name('nom', 'exact', 'réservé')
---   select admin_unblock_club_name('motinterdit');
 --   select admin_rename_club('AncienNom', 'NouveauNom');
---   select * from admin_blocked_clubs();            -- clubs dont le nom actuel est interdit
-create or replace function admin_block_club_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
-language plpgsql volatile set search_path = public as $$
-begin
-  if length(_name_norm(p_word)) = 0 then raise exception 'bad_word'; end if;
-  insert into blocked_club_names (word, mode, note) values (btrim(p_word), p_mode, p_note)
-    on conflict (word) do update set mode = excluded.mode, note = coalesce(excluded.note, blocked_club_names.note);
-  return 'ok';
-end $$;
-create or replace function admin_unblock_club_name(p_word text) returns text language plpgsql volatile
-set search_path = public as $$
-begin delete from blocked_club_names where lower(word) = lower(btrim(p_word)); return 'ok'; end $$;
 create or replace function admin_rename_club(p_current text, p_new text) returns jsonb language plpgsql volatile
 set search_path = public as $$
 declare v_id bigint;
@@ -907,7 +970,7 @@ begin
   return jsonb_build_object('id', v_id, 'new', (select name from clubs where id = v_id));
 end $$;
 create or replace function admin_blocked_clubs() returns table (id bigint, name text) language sql stable security definer
-set search_path = public as $$ select id, name from clubs where _club_name_blocked(name) order by name $$;
+set search_path = public as $$ select id, name from clubs where _name_blocked(name, 'club') order by name $$;
 
 -- Connexion / création du profil. Chaque appel ouvre une NOUVELLE session :
 -- l'ancien appareil connecté au même compte est éjecté à son prochain appel.

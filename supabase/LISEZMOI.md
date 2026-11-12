@@ -47,14 +47,26 @@ Tu peux aussi simplement modifier la colonne `name` dans Table Editor > `profile
 
 **Règles d'un pseudo** (vérifiées par le serveur, impossibles à contourner depuis le jeu) : 2 à 14 caractères ; lettres, chiffres, espace, `_` `.` `'` `-` (pas d'emoji ni de symboles) ; pas déjà pris (majuscules ignorées) ; pas dans la liste noire.
 
-**Liste noire** (table `blocked_names`, modifiable dans Table Editor ou par commande) :
+**Liste noire centrale** : une seule table `blocked_words`, pour les pseudos **et** les noms de clubs. Tu la gères dans Table Editor (ajouter, modifier, supprimer des lignes) ou par commande dans le SQL Editor, sans toucher au code du jeu :
 
 ```sql
-select admin_block_name('motinterdit');                -- interdit tout pseudo qui CONTIENT ce mot
-select admin_block_name('admin', 'exact', 'réservé');  -- interdit seulement ce pseudo exact
-select admin_unblock_name('motinterdit');              -- retire un mot
-select * from admin_blocked_players();                 -- joueurs dont le pseudo actuel est interdit
+select admin_block_word('motinterdit');                           -- pseudos ET clubs, interdit tout nom qui CONTIENT ce mot
+select admin_block_word('admin', 'exact', 'all', 'réservé');      -- seulement ce nom exact (3e valeur : 'all', 'player' ou 'club')
+select admin_block_word('officiel', 'exact', 'club');             -- seulement pour les noms de clubs
+select * from admin_blocked_words();                              -- voir la liste (avec l'id de chaque mot)
+select admin_update_blocked_word(12, p_mode => 'exact');          -- modifier un mot (p_word, p_mode, p_scope, p_note)
+select admin_set_blocked_word_active(12, false);                  -- le désactiver sans le supprimer (true pour le réactiver)
+select admin_unblock_word('motinterdit');                         -- le supprimer (ou admin_delete_blocked_word(12))
+select admin_test_name('Gr0s Mot', 'player');                     -- ce nom serait-il accepté ? ('club' pour un nom de club)
+select * from admin_blocked_players();                            -- joueurs dont le pseudo actuel est (devenu) interdit
+select * from admin_blocked_clubs();                              -- idem pour les clubs
 ```
+
+Colonnes de `blocked_words` : `word` (le mot), `mode` (`exact` ou `contains`), `scope` (`all` = pseudos et clubs, `player`, `club`), `active`, `note`. La forme comparable (`norm`) est calculée toute seule.
+
+**Où c'est vérifié (toujours par le serveur) :** création de compte, changement de pseudo (y compris à la main dans `profiles` ou par `admin_rename_player`), création d'un club, renommage d'un club (y compris à la main dans `clubs`). Le jeu ne peut pas le contourner. La table n'est lisible ni modifiable par le jeu (aucun droit pour les joueurs) : seul toi, depuis Supabase, y as accès.
+
+**Mise à jour d'une ancienne version :** si tu avais déjà des mots dans `blocked_names` ou `blocked_club_names`, ils sont repris automatiquement dans `blocked_words` quand tu relances `schema.sql`, puis les anciennes tables sont supprimées. Les anciennes commandes (`admin_block_name`, `admin_block_club_name`...) marchent toujours.
 
 La comparaison ignore majuscules, accents, espaces, ponctuation, lettres répétées et les astuces du genre `4dm1n` ou `a d m i n`. Quelques noms réservés sont déjà dedans (admin, modo, staff, support...). Un joueur dont le pseudo devient interdit **n'est pas bloqué** : utilise `admin_blocked_players()` pour le trouver puis renomme-le.
 
@@ -84,12 +96,9 @@ Un second petit bouton (bouclier), juste sous celui des amis, ouvre l'écran **C
 - Si le chef quitte, la direction passe à un officier (sinon au plus ancien membre). Le dernier membre qui part ferme le club.
 - Maximum 30 membres par club, 3 demandes en attente par joueur. Un club est classé selon le total des trophées de ses membres.
 
-**Liste noire des noms de clubs** : table `blocked_club_names` (Table Editor) ou par commande ; la liste des pseudos interdits s'applique aussi aux noms de clubs.
+**Liste noire des noms de clubs** : la même table centrale `blocked_words` (voir plus haut, `scope` = `club` ou `all`).
 
 ```sql
-select admin_block_club_name('motinterdit');                 -- interdit tout nom qui CONTIENT ce mot
-select admin_block_club_name('officiel', 'exact', 'réservé'); -- seulement ce nom exact
-select admin_unblock_club_name('motinterdit');
 select admin_rename_club('AncienNom', 'NouveauNom');         -- renommer un club
 select * from admin_blocked_clubs();                          -- clubs dont le nom est (devenu) interdit
 ```
