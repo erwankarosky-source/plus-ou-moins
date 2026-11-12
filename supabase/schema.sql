@@ -98,6 +98,7 @@ alter table profiles add column if not exists duel_wins int not null default 0;
 -- Identifiant de connexion PERMANENT (invisible pour le joueur) : il ne change jamais, même si le pseudo change.
 -- Les comptes existants gardent leur identifiant actuel (copié depuis auth.users).
 alter table profiles add column if not exists login_email text;
+alter table profiles add column if not exists friend_code text;
 alter table profiles add column if not exists duel_losses int not null default 0;
 create index if not exists profiles_b_easy on profiles (b_easy desc);
 create index if not exists profiles_b_normal on profiles (b_normal desc);
@@ -188,6 +189,23 @@ create table if not exists duel_queue (
   matched_code text
 );
 
+-- Amis : une ligne par paire de joueurs (peu importe qui a fait la demande).
+create table if not exists friendships (
+  id bigint generated always as identity primary key,
+  a uuid not null references profiles (id) on delete cascade,      -- celui qui a envoyé la demande
+  b uuid not null references profiles (id) on delete cascade,      -- celui qui la reçoit
+  status text not null default 'pending' check (status in ('pending', 'accepted')),
+  created_at timestamptz not null default now(),
+  accepted_at timestamptz,
+  check (a <> b)
+);
+create unique index if not exists friendships_pair on friendships (least(a, b), greatest(a, b));   -- pas de doublon, dans aucun sens
+create index if not exists friendships_a on friendships (a);
+create index if not exists friendships_b on friendships (b);
+-- Essais de codes inconnus (limite les tentatives au hasard).
+create table if not exists friend_attempts (uid uuid not null, at timestamptz not null default now());
+create index if not exists friend_attempts_uid on friend_attempts (uid, at);
+
 -- Sécurité : RLS activée partout. Seuls les réglages (cfg_*) sont lisibles.
 alter table profiles enable row level security;
 alter table games enable row level security;
@@ -196,6 +214,8 @@ alter table duel_secrets enable row level security;
 alter table duel_players enable row level security;
 alter table duel_queue enable row level security;
 alter table blocked_names enable row level security;
+alter table friendships enable row level security;
+alter table friend_attempts enable row level security;
 alter table name_history enable row level security;
 alter table cfg_levels enable row level security;
 alter table cfg_rarities enable row level security;
@@ -212,7 +232,7 @@ begin
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
-revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history from anon, authenticated;
+revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history, friendships, friend_attempts from anon, authenticated;
 revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
 
 -- =====================================================================
@@ -229,7 +249,7 @@ set search_path = public as $$
   select jsonb_build_object(
     'name', name, 'best', best, 'bestLvl', best_lvl,
     'b_easy', b_easy, 'b_normal', b_normal, 'b_hard', b_hard, 'b_nightmare', b_nightmare,
-    'games', games, 'coins', coins, 'hatched', hatched, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
+    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
     'mp', mp, 'mc', mc, 'today', _today()::text)
@@ -424,6 +444,126 @@ begin
   if v is null or exists (select 1 from profiles where id = v) then return false; end if;
   delete from auth.users where id = v;
   return true;
+end $$;
+
+-- ---------- Amis ----------
+-- Code d'ami : 8 caractères sans ambiguïté (pas de 0/O, 1/I/L), unique, attribué une fois pour toutes.
+create or replace function _gen_friend_code() returns text language plpgsql volatile set search_path = public as $$
+declare v_chars constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; v text; i int;
+begin
+  loop
+    v := '';
+    for i in 1..8 loop v := v || substr(v_chars, 1 + floor(random() * length(v_chars))::int, 1); end loop;
+    exit when not exists (select 1 from profiles where friend_code = v);
+  end loop;
+  return v;
+end $$;
+create or replace function _profiles_code_guard() returns trigger language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.friend_code is null then new.friend_code := _gen_friend_code(); end if;
+  else
+    new.friend_code := coalesce(old.friend_code, new.friend_code);    -- le code ne change jamais
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_code_guard on profiles;
+create trigger profiles_code_guard before insert or update of friend_code on profiles
+  for each row execute function _profiles_code_guard();
+update profiles set friend_code = _gen_friend_code() where friend_code is null;
+create unique index if not exists profiles_friend_code on profiles (friend_code);
+
+-- Limites (anti-abus)
+create or replace function _friend_cap() returns int language sql immutable as $$ select 100 $$;
+create or replace function _friend_pending_cap() returns int language sql immutable as $$ select 20 $$;
+
+-- Liste complète : mon code, mes amis, les demandes reçues, les demandes envoyées.
+create or replace function friends_list(p_sid text) returns jsonb language plpgsql stable security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  return jsonb_build_object(
+    'code', (select friend_code from profiles where id = v_uid),
+    'friends', coalesce((select jsonb_agg(jsonb_build_object('fid', f.id, 'name', p.name, 'pet', coalesce(p.team ->> 0, ''),
+                 'trophies', p.trophies) order by lower(p.name))
+               from friendships f join profiles p on p.id = case when f.a = v_uid then f.b else f.a end
+               where f.status = 'accepted' and v_uid in (f.a, f.b)), '[]'),
+    'incoming', coalesce((select jsonb_agg(jsonb_build_object('fid', f.id, 'name', p.name, 'pet', coalesce(p.team ->> 0, '')) order by f.created_at)
+               from friendships f join profiles p on p.id = f.a where f.status = 'pending' and f.b = v_uid), '[]'),
+    'outgoing', coalesce((select jsonb_agg(jsonb_build_object('fid', f.id, 'name', p.name, 'pet', coalesce(p.team ->> 0, '')) order by f.created_at)
+               from friendships f join profiles p on p.id = f.b where f.status = 'pending' and f.a = v_uid), '[]'));
+end $$;
+
+-- Envoyer une demande avec le code d'ami de l'autre joueur.
+-- Résultats : sent | accepted (l'autre m'avait déjà demandé : on devient amis) | unknown | self | friends | pending | full | rate
+create or replace function friend_request(p_sid text, p_code text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare
+  v_uid uuid := _me(p_sid); v_code text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
+  v_to uuid; v_name text; f friendships;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_friends:' || v_uid::text));
+  delete from friend_attempts where at < now() - interval '1 hour';
+  if (select count(*) from friend_attempts where uid = v_uid and at > now() - interval '10 minutes') >= 10 then
+    return jsonb_build_object('status', 'rate');
+  end if;
+  select id, name into v_to, v_name from profiles where friend_code = v_code;
+  if v_to is null then
+    insert into friend_attempts (uid) values (v_uid);
+    return jsonb_build_object('status', 'unknown');
+  end if;
+  if v_to = v_uid then return jsonb_build_object('status', 'self'); end if;
+
+  select * into f from friendships where least(a, b) = least(v_uid, v_to) and greatest(a, b) = greatest(v_uid, v_to);
+  if found then
+    if f.status = 'accepted' then return jsonb_build_object('status', 'friends', 'name', v_name); end if;
+    if f.a = v_uid then return jsonb_build_object('status', 'pending', 'name', v_name); end if;
+    -- il m'avait déjà envoyé une demande : en envoyer une en retour revient à l'accepter
+    if (select count(*) from friendships where status = 'accepted' and v_uid in (a, b)) >= _friend_cap()
+       or (select count(*) from friendships where status = 'accepted' and v_to in (a, b)) >= _friend_cap() then
+      return jsonb_build_object('status', 'full');
+    end if;
+    update friendships set status = 'accepted', accepted_at = now() where id = f.id;
+    return jsonb_build_object('status', 'accepted', 'name', v_name);
+  end if;
+
+  if (select count(*) from friendships where a = v_uid and status = 'pending') >= _friend_pending_cap()
+     or (select count(*) from friendships where status = 'accepted' and v_uid in (a, b)) >= _friend_cap()
+     or (select count(*) from friendships where b = v_to and status = 'pending') >= _friend_pending_cap() * 5 then
+    return jsonb_build_object('status', 'full');
+  end if;
+  insert into friendships (a, b) values (v_uid, v_to);
+  return jsonb_build_object('status', 'sent', 'name', v_name);
+exception when unique_violation then
+  return jsonb_build_object('status', 'pending', 'name', v_name);      -- deux demandes simultanées : une seule est gardée
+end $$;
+
+-- Répondre à une demande reçue (accepter ou refuser).
+create or replace function friend_respond(p_sid text, p_fid bigint, p_accept boolean) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); f friendships;
+begin
+  select * into f from friendships where id = p_fid for update;
+  if not found or f.b <> v_uid or f.status <> 'pending' then return jsonb_build_object('status', 'gone'); end if;
+  if not p_accept then
+    delete from friendships where id = p_fid;
+    return jsonb_build_object('status', 'declined');
+  end if;
+  if (select count(*) from friendships where status = 'accepted' and v_uid in (a, b)) >= _friend_cap()
+     or (select count(*) from friendships where status = 'accepted' and f.a in (a, b)) >= _friend_cap() then
+    return jsonb_build_object('status', 'full');
+  end if;
+  update friendships set status = 'accepted', accepted_at = now() where id = p_fid;
+  return jsonb_build_object('status', 'accepted');
+end $$;
+
+-- Retirer un ami, ou annuler une demande que j'ai envoyée.
+create or replace function friend_remove(p_sid text, p_fid bigint) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  delete from friendships where id = p_fid and v_uid in (a, b) and (status = 'accepted' or a = v_uid);
+  return jsonb_build_object('status', case when found then 'removed' else 'gone' end);
 end $$;
 
 -- ---------- Outils administrateur (à lancer dans Supabase > SQL Editor ; JAMAIS appelables depuis le jeu) ----------

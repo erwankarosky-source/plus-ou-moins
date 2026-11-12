@@ -294,6 +294,28 @@ button:disabled { cursor: default; }
 .plr .tag { background: var(--yellow); color: var(--yellow-ink); border-radius: 999px; padding: 0 9px; font-size: 0.8rem; font-weight: 600; }
 .plr .nm { overflow-wrap: anywhere; min-width: 0; }
 .plist2 { display: grid; gap: 8px; }
+.fbtn { position: absolute; top: 0; right: 0; z-index: 2; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
+.fbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--line); }
+.fbtn svg { width: 20px; height: 20px; }
+.fbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); font: 700 0.7rem/18px var(--font-body); text-align: center; }
+#menu { position: relative; }
+.codebox { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.codebox .dbig { letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+.copybtn { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; box-shadow: 0 2px 0 var(--line); touch-action: manipulation; }
+.dbox > * { min-width: 0; }
+.addrow { display: flex; gap: 8px; min-width: 0; }
+.addrow input { flex: 1 1 0; width: 0; min-width: 0; min-height: 54px; border: 3px solid var(--accent); border-radius: 20px; background: var(--surface); color: var(--fg); font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; padding: 8px 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.addrow input::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 1rem; }
+.addrow .btn { flex: none; width: auto; padding-inline: 16px; margin-right: 2px; }
+.frow { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 8px 12px; }
+.frow .pet { width: 34px; height: 34px; flex: none; }
+.frow .fname { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frow .fname small { display: block; font-family: var(--font-body); font-weight: 700; font-size: 0.75rem; color: var(--muted); }
+.frow .fact { display: flex; gap: 6px; flex: none; }
+.fsmall { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; min-height: 34px; padding: 2px 12px; font-family: var(--font-display); font-weight: 500; font-size: 0.85rem; touch-action: manipulation; }
+.fsmall.ok { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.fsmall.quiet { color: var(--muted); }
+.fsec { font-family: var(--font-display); font-weight: 600; font-size: 1rem; margin: 4px 2px 0; }
 .searching { animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .searching { animation: none; } }
@@ -517,6 +539,10 @@ button:disabled { cursor: default; }
   </section>
 
   <section class="view" id="menu" hidden>
+    <button class="fbtn" id="open-friends" type="button" aria-label="Amis" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>
+      <span class="fbadge" id="friend-badge" hidden>0</span>
+    </button>
     <div class="mascot-wrap"><div class="mascot" id="mascot-menu"></div></div>
     <div class="teamrow" id="teamrow"></div>
     <h1><span class="p">Plus</span> ou <span class="m">Moins</span> ?</h1>
@@ -597,6 +623,29 @@ button:disabled { cursor: default; }
       <p class="note" id="lobby-wait" style="text-align:center"></p>
     </div>
     <p class="note" id="lobby-note" aria-live="polite"></p>
+  </section>
+
+  <section class="view" id="friends" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title">Amis</h2>
+    <div class="dbox">
+      <b>Ton code d'ami</b>
+      <div class="codebox"><div class="dbig" id="fr-code">--------</div><button class="copybtn" id="fr-copy" type="button">Copier</button></div>
+      <span class="dsmall" style="text-align:left">Donne ce code à un ami : il pourra t'envoyer une demande.</span>
+    </div>
+    <form class="dbox" id="fr-form" autocomplete="off">
+      <label for="fr-input"><b>Ajouter un ami</b></label>
+      <div class="addrow">
+        <input id="fr-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="12" placeholder="Code de ton ami">
+        <button class="btn btn-main" id="fr-send" type="submit">Envoyer</button>
+      </div>
+    </form>
+    <p class="note" id="fr-note" aria-live="polite"></p>
+    <div id="fr-in-box" hidden><div class="fsec">Demandes reçues</div><div class="rows" id="fr-in"></div></div>
+    <div id="fr-out-box" hidden><div class="fsec">Demandes envoyées</div><div class="rows" id="fr-out"></div></div>
+    <div><div class="fsec" id="fr-title">Mes amis</div><div class="rows" id="fr-list"></div></div>
   </section>
 
   <section class="view" id="missions" hidden>
@@ -808,7 +857,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions", "friends"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -922,6 +971,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     });
     var dd = d.daily && typeof d.daily === "object" ? d.daily : {};
     b.daily = { day: typeof dd.day === "string" ? dd.day : "", streak: Math.max(0, Math.floor(+dd.streak || 0)) };
+    b.friendCode = typeof d.friendCode === "string" && /^[A-Z0-9]{8}$/.test(d.friendCode) ? d.friendCode : "";
     b.trophies = Math.max(0, Math.floor(+d.trophies || 0));
     b.duelWins = Math.max(0, Math.floor(+d.duelWins || 0));
     b.duelLosses = Math.max(0, Math.floor(+d.duelLosses || 0));
@@ -1313,6 +1363,8 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     $("coins").textContent = fmtInt(me.coins);
     $("logout").textContent = mode === "guest" ? "Créer un compte" : "Se déconnecter";
     $("open-del").textContent = mode === "guest" ? "Effacer mes données" : "Supprimer mon compte";
+    $("open-friends").hidden = mode !== "account";
+    if (mode === "account") refreshFriends(true);
     show("menu");
     if (!dailyChecked) { dailyChecked = true; if (!dailyInfo().claimed) openDaily(); }
   }
@@ -1371,11 +1423,14 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (s.phase === "menu") $("coins").textContent = fmtInt(me.coins);
   }
   var sessTimer = null;
-  function stopSession() { clearInterval(sessTimer); sessTimer = null; ctx.sid = null; }
+  var friendTimer = null, friendsData = null, frBusy = false;
+  function stopSession() { clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; ctx.sid = null; }
   function checkSession() { if (mode === "account" && ctx.sid && !document.hidden) srv("check_session").catch(function () {}); }
   function startSessionWatch() {
     clearInterval(sessTimer);
     sessTimer = setInterval(checkSession, 15000);
+    clearInterval(friendTimer);
+    friendTimer = setInterval(function () { if (!document.hidden && (s.phase === "menu" || s.phase === "friends")) refreshFriends(true); }, 30000);
   }
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { checkSession(); if (duelCur && !duelCur.ended) pollDuel(); } });
   function kickedOut(code) {
@@ -2352,6 +2407,139 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     else { $("dailybox").hidden = true; openEgg(r.egg, true); }
   }
 
+  /* ---------- friends: personal code, requests, list ---------- */
+  function setFriendBadge(n) {
+    var b = $("friend-badge");
+    b.hidden = !(n > 0);
+    b.textContent = n > 9 ? "9+" : String(n);
+    $("open-friends").setAttribute("aria-label", n > 0 ? "Amis (" + n + (n > 1 ? " demandes)" : " demande)") : "Amis");
+  }
+  function refreshFriends(quiet) {
+    if (mode !== "account" || !ctx.sid) return Promise.resolve();
+    return srv("friends_list").then(function (d) {
+      friendsData = d;
+      if (me && d && typeof d.code === "string") me.friendCode = d.code;
+      setFriendBadge((d.incoming || []).length);
+      if (s.phase === "friends") renderFriends();
+    }).catch(function () { if (!quiet && s.phase === "friends") frNote("Impossible de charger tes amis. Vérifie ta connexion.", true); });
+  }
+  function frNote(text, warn) { var n = $("fr-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
+  function fmtCode(c) { return c && c.length === 8 ? c.slice(0, 4) + "-" + c.slice(4) : (c || "--------"); }
+  function frRow(f, btns, sub) {
+    var r = document.createElement("div");
+    r.className = "frow";
+    if (f.pet) { var pv = document.createElement("div"); pv.className = "pet"; pv.innerHTML = petSvg(f.pet); r.appendChild(pv); }
+    var n = document.createElement("div");
+    n.className = "fname";
+    n.appendChild(document.createTextNode(typeof f.name === "string" ? f.name : "Joueur"));
+    if (sub) { var sm = document.createElement("small"); sm.textContent = sub; n.appendChild(sm); }
+    r.appendChild(n);
+    var act = document.createElement("div");
+    act.className = "fact";
+    btns.forEach(function (b) {
+      var x = document.createElement("button");
+      x.type = "button"; x.className = "fsmall" + (b.cls ? " " + b.cls : ""); x.textContent = b.label;
+      if (b.aria) x.setAttribute("aria-label", b.aria + " " + (f.name || ""));
+      x.addEventListener("click", function () { b.fn(f, x); });
+      act.appendChild(x);
+    });
+    r.appendChild(act);
+    return r;
+  }
+  function renderFriends() {
+    var d = friendsData || { code: me ? me.friendCode : "", friends: [], incoming: [], outgoing: [] };
+    $("fr-code").textContent = fmtCode(d.code || (me && me.friendCode));
+    var inn = d.incoming || [], out = d.outgoing || [], fl = d.friends || [];
+    $("fr-in-box").hidden = !inn.length; $("fr-out-box").hidden = !out.length;
+    var a = $("fr-in"); a.innerHTML = "";
+    inn.forEach(function (f) {
+      a.appendChild(frRow(f, [
+        { label: "Accepter", cls: "ok", aria: "Accepter", fn: function () { respondFriend(f, true); } },
+        { label: "Refuser", cls: "quiet", aria: "Refuser", fn: function () { respondFriend(f, false); } }
+      ]));
+    });
+    var o = $("fr-out"); o.innerHTML = "";
+    out.forEach(function (f) {
+      o.appendChild(frRow(f, [{ label: "Annuler", cls: "quiet", aria: "Annuler la demande à", fn: function () { removeFriend(f, false); } }], "En attente"));
+    });
+    $("fr-title").textContent = "Mes amis" + (fl.length ? " (" + fl.length + ")" : "");
+    var l = $("fr-list"); l.innerHTML = "";
+    if (!fl.length) {
+      var e = document.createElement("p"); e.className = "note"; e.textContent = "Pas encore d'ami. Partage ton code ou entre celui d'un ami ci-dessus.";
+      l.appendChild(e);
+    }
+    fl.forEach(function (f) {
+      l.appendChild(frRow(f, [{ label: "Retirer", cls: "quiet", aria: "Retirer", fn: function () { removeFriend(f, true); } }],
+        typeof f.trophies === "number" ? fmtInt(f.trophies) + (f.trophies > 1 ? " trophées" : " trophée") : ""));
+    });
+  }
+  function goFriends() {
+    if (mode !== "account") return;
+    stopTimer();
+    s.phase = "friends";
+    frNote("");
+    renderFriends();
+    show("friends");
+    refreshFriends(false);
+  }
+  function friendCall(name, args) {
+    if (frBusy) return Promise.reject(new Error("busy"));
+    frBusy = true;
+    return srv(name, args).then(function (r) { frBusy = false; return r; }, function (e) { frBusy = false; throw e; });
+  }
+  function onFriendAdd(e) {
+    e.preventDefault();
+    var code = $("fr-input").value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (code.length !== 8) { frNote("Un code d'ami contient 8 lettres ou chiffres.", true); return; }
+    if (me && code === me.friendCode) { frNote("C'est ton propre code ! Donne-le à un ami.", true); return; }
+    $("fr-send").disabled = true;
+    friendCall("friend_request", { p_code: code }).then(function (r) {
+      var st = r && r.status, nm = r && r.name;
+      var msg = {
+        sent: "Demande envoyée" + (nm ? " à " + nm : "") + ".",
+        accepted: (nm || "Ce joueur") + " et toi êtes maintenant amis !",
+        unknown: "Ce code d'ami n'existe pas. Vérifie-le avec ton ami.",
+        self: "C'est ton propre code ! Donne-le à un ami.",
+        friends: "Vous êtes déjà amis" + (nm ? " avec " + nm : "") + ".",
+        pending: "Tu as déjà envoyé une demande" + (nm ? " à " + nm : "") + ".",
+        full: "Impossible pour le moment : liste d'amis ou de demandes pleine.",
+        rate: "Trop d'essais avec de mauvais codes. Réessaie dans quelques minutes."
+      }[st] || "Demande impossible pour le moment.";
+      frNote(msg, !(st === "sent" || st === "accepted"));
+      if (st === "sent" || st === "accepted") $("fr-input").value = "";
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Impossible d'envoyer la demande. Vérifie ta connexion.", true); })
+      .then(function () { $("fr-send").disabled = false; });
+  }
+  function respondFriend(f, accept) {
+    friendCall("friend_respond", { p_fid: f.fid, p_accept: accept }).then(function (r) {
+      var st = r && r.status;
+      frNote(st === "accepted" ? (f.name || "Ce joueur") + " est maintenant ton ami !" : st === "declined" ? "Demande refusée." :
+        st === "full" ? "Impossible : liste d'amis pleine (toi ou lui)." : "Cette demande n'existe plus.", st === "full");
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Action impossible pour le moment.", true); });
+  }
+  function removeFriend(f, isFriend) {
+    if (isFriend) {
+      var ok = true;
+      try { ok = window.confirm("Retirer " + (f.name || "cet ami") + " de ta liste d'amis ?"); } catch (e) {}
+      if (!ok) return;
+    }
+    friendCall("friend_remove", { p_fid: f.fid }).then(function (r) {
+      frNote(r && r.status === "removed" ? (isFriend ? "Ami retiré." : "Demande annulée.") : "Cette personne n'est déjà plus dans ta liste.");
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Action impossible pour le moment.", true); });
+  }
+  function copyFriendCode() {
+    var c = me && me.friendCode;
+    if (!c) return;
+    function done(okc) { var b = $("fr-copy"); b.textContent = okc ? "Copié !" : "Copie impossible"; setTimeout(function () { b.textContent = "Copier"; }, 1500); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(c).then(function () { done(true); }, function () { done(false); }); return; }
+    } catch (e) {}
+    done(false);
+  }
+
   /* ---------- duels: automatic matchmaking, then a race to the number ---------- */
   var duelLvl = "normal", duelMode = "casual", duelCur = null, searchCur = null, cdTimers = [];
   var duelPoll = null, duelFails = 0;
@@ -2844,6 +3032,9 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     var b = e.target.closest("button");
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
   });
+  $("open-friends").addEventListener("click", goFriends);
+  $("fr-form").addEventListener("submit", onFriendAdd);
+  $("fr-copy").addEventListener("click", copyFriendCode);
   $("duel-casual").addEventListener("click", function () { startSearch("casual"); });
   $("duel-ranked").addEventListener("click", function () { startSearch("ranked"); });
   $("lobby-leave").addEventListener("click", cancelSearch);

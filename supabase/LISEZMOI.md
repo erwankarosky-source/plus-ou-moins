@@ -61,3 +61,14 @@ La comparaison ignore majuscules, accents, espaces, ponctuation, lettres répét
 Ces commandes `admin_...` ne peuvent être lancées que depuis ton SQL Editor, jamais depuis le jeu.
 
 **À faire une fois :** recolle `schema.sql` en entier (il peut être relancé sans risque), puis mets à jour l'appli (nouvel APK / nouvelle page web). Les anciennes versions du jeu ne sauront plus se connecter après le changement, il faut donc que tous les joueurs aient la nouvelle.
+
+## Amis (nouveau)
+
+Un petit bouton « personne + » en haut à droite du menu ouvre l'écran **Amis** (invisible pour les invités). Chaque joueur a un **code d'ami** unique de 8 caractères (ex. `G63A-2AFD`), attribué une fois pour toutes (les comptes existants en reçoivent un en collant `schema.sql`).
+
+- On envoie une demande avec le code ; l'autre joueur voit une pastille avec le nombre de demandes en attente sur le bouton, puis **accepte ou refuse**.
+- Liste d'amis (avec trophées), retrait d'un ami (avec confirmation), annulation d'une demande envoyée.
+- Les amis suivent les changements de pseudo automatiquement.
+- Protections côté serveur : pas de demande à soi-même, pas de doublon (même si les deux joueurs s'écrivent en même temps : si l'autre t'avait déjà demandé, vous devenez amis directement), on ne peut répondre qu'à ses propres demandes, 10 mauvais codes en 10 minutes = pause, plafond de 100 amis et 20 demandes en attente.
+
+**À faire une fois :** recolle `schema.sql` en entier (relançable sans risque).
