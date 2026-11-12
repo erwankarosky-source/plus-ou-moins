@@ -1041,8 +1041,20 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     return "bad";
   }
   function fbPw(pw) { return pw + "~PoM"; }
-  function pseudoKey(name) { return String(name || "").replace(/\s+/g, " ").trim().toLowerCase(); }
-  function pseudoEmail(name) { var k = pseudoKey(name); return "p" + cyrb(k, 11) + cyrb(k, 22) + cyrb(k, 33) + "@" + ((FB && FB.emailDomain) || "plusoumoins.game"); }
+  /* The login identifier (a hidden e-mail) is permanent and no longer derived from the pseudo:
+     the server finds it from the pseudo (resolve_login), so an admin can rename a player without breaking anything. */
+  function randomLoginEmail() {
+    var a = new Uint8Array(16), h = "";
+    try { (window.crypto || window.msCrypto).getRandomValues(a); } catch (e) { for (var i = 0; i < 16; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (var j = 0; j < a.length; j++) h += (a[j] < 16 ? "0" : "") + a[j].toString(16);
+    return "u" + h + "@" + ((FB && FB.emailDomain) || "plusoumoins.game");
+  }
+  function nameMsg(code) {
+    if (code === "name_taken") return "Ce pseudo est déjà pris. Essaie-en un autre.";
+    if (code === "forbidden_name") return "Ce pseudo n'est pas autorisé. Choisis-en un autre.";
+    if (code === "bad_name") return "Ton pseudo doit faire entre 2 et 14 caractères : lettres, chiffres, espace, _ . ' ou -.";
+    return "";
+  }
   async function verifyPw(pw) {
     if (lockLeft() > 0) return "locked";
     if (!pw) return "empty";
@@ -1398,12 +1410,16 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
     $("signup-go").disabled = true;
     try {
+      // the server checks the pseudo (format, forbidden words, already taken) before any account is created
+      var chk;
+      try { chk = await FB.rpc("check_name", { p_name: name }); }
+      catch (err0) { setNote("Pas de connexion au serveur. Réessaie dans un instant.", true); return; }
+      if (chk !== "ok") { setNote(nameMsg(chk) || nameMsg("bad_name"), true); return; }
       var user;
-      try { user = await FB.auth.signUp(pseudoEmail(name), fbPw(pw)); }
+      try { user = await FB.auth.signUp(randomLoginEmail(), fbPw(pw)); }
       catch (err) {
         var c0 = err && err.code;
-        if (c0 === "auth/email-already-in-use") setNote("Ce pseudo est déjà pris. Essaie-en un autre.", true);
-        else if (c0 === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
+        if (c0 === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
         else if (c0 === "auth/too-many-requests") setNote("Trop d'essais. Réessaie dans quelques minutes.", true);
         else if (c0 === "auth/email-invalid" || c0 === "auth/confirm-required") setNote("Le serveur refuse la création de compte (réglage du serveur à vérifier : " + c0 + ").", true);
         else setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
@@ -1414,8 +1430,18 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
       $("su-pw").value = ""; $("su-pw2").value = "";
       loginAccount(res);
     } catch (err) {
-      if (err && err.code === "name_taken") setNote("Ce pseudo est déjà pris. Essaie-en un autre.", true);
-      else setNote("Le compte est créé mais le profil n'a pas pu être enregistré. Connecte-toi pour réessayer.", true);
+      var nm = err && nameMsg(err.code);
+      if (nm) {                                   // refused at the last moment (taken meanwhile, or a bypassed check): drop the empty account
+        try { await FB.rpc("cancel_signup", {}); } catch (e2) {}
+        try { await FB.auth.signOut(); } catch (e3) {}
+        ctx.uid = null;
+        setNote(nm, true);
+      } else {
+        try { await FB.rpc("cancel_signup", {}); } catch (e2) {}
+        try { await FB.auth.signOut(); } catch (e3) {}
+        ctx.uid = null;
+        setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
+      }
     } finally {
       $("signup-go").disabled = false;
     }
@@ -1429,8 +1455,12 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
     $("login-go").disabled = true;
     try {
-      var user;
-      try { user = await FB.auth.signIn(pseudoEmail(name), fbPw(pw)); }
+      var user, loginEmail = null;
+      try { loginEmail = await FB.rpc("resolve_login", { p_name: name }); }
+      catch (err1) { setNote("Pas de connexion au serveur. Réessaie dans un instant.", true); return; }
+      // unknown pseudo (or an old pseudo after a rename): try a dummy identifier so the answer looks like a wrong password
+      if (!loginEmail) loginEmail = randomLoginEmail();
+      try { user = await FB.auth.signIn(loginEmail, fbPw(pw)); }
       catch (err) {
         var c = err && err.code;
         if (c === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);

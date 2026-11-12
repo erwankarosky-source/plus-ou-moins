@@ -32,3 +32,32 @@ Règles anti-abus gérées par le serveur :
 Ces réglages (`duel_k`, `duel_idle_s`, `duel_max_min`, `mm_window`, `mm_window_step`, `ranked_cooldown_min`) se modifient dans Table Editor > `cfg_settings`.
 
 **À faire une fois :** recolle le fichier `schema.sql` en entier dans Supabase (SQL Editor > Run). Il peut être relancé sans risque, il ajoute les trophées et la file d'attente sans toucher aux comptes.
+
+## Pseudos : changement réel et liste noire (nouveau)
+
+**Comment ça marche.** Chaque compte a un identifiant de connexion **permanent** (caché, jamais montré au joueur) qui ne change jamais. Le pseudo n'est qu'une étiquette qui pointe vers lui. Quand tu changes un pseudo, l'ancien ne permet plus de se connecter, le nouveau oui, et le joueur garde tout (pièces, pets, score, trophées). Les comptes existants gardent leur identifiant actuel : rien n'est perdu.
+
+**Renommer un joueur** (Supabase > SQL Editor) :
+
+```sql
+select admin_rename_player('AncienPseudo', 'NouveauPseudo');
+```
+
+Tu peux aussi simplement modifier la colonne `name` dans Table Editor > `profiles` : un garde-fou vérifie le nouveau pseudo et met à jour la connexion tout seul (ne touche pas à `login_email`). Chaque changement est noté dans la table `name_history`.
+
+**Règles d'un pseudo** (vérifiées par le serveur, impossibles à contourner depuis le jeu) : 2 à 14 caractères ; lettres, chiffres, espace, `_` `.` `'` `-` (pas d'emoji ni de symboles) ; pas déjà pris (majuscules ignorées) ; pas dans la liste noire.
+
+**Liste noire** (table `blocked_names`, modifiable dans Table Editor ou par commande) :
+
+```sql
+select admin_block_name('motinterdit');                -- interdit tout pseudo qui CONTIENT ce mot
+select admin_block_name('admin', 'exact', 'réservé');  -- interdit seulement ce pseudo exact
+select admin_unblock_name('motinterdit');              -- retire un mot
+select * from admin_blocked_players();                 -- joueurs dont le pseudo actuel est interdit
+```
+
+La comparaison ignore majuscules, accents, espaces, ponctuation, lettres répétées et les astuces du genre `4dm1n` ou `a d m i n`. Quelques noms réservés sont déjà dedans (admin, modo, staff, support...). Un joueur dont le pseudo devient interdit **n'est pas bloqué** : utilise `admin_blocked_players()` pour le trouver puis renomme-le.
+
+Ces commandes `admin_...` ne peuvent être lancées que depuis ton SQL Editor, jamais depuis le jeu.
+
+**À faire une fois :** recolle `schema.sql` en entier (il peut être relancé sans risque), puis mets à jour l'appli (nouvel APK / nouvelle page web). Les anciennes versions du jeu ne sauront plus se connecter après le changement, il faut donc que tous les joueurs aient la nouvelle.

@@ -95,11 +95,37 @@ create table if not exists profiles (
 );
 alter table profiles add column if not exists trophies int not null default 0 check (trophies >= 0);
 alter table profiles add column if not exists duel_wins int not null default 0;
+-- Identifiant de connexion PERMANENT (invisible pour le joueur) : il ne change jamais, même si le pseudo change.
+-- Les comptes existants gardent leur identifiant actuel (copié depuis auth.users).
+alter table profiles add column if not exists login_email text;
 alter table profiles add column if not exists duel_losses int not null default 0;
 create index if not exists profiles_b_easy on profiles (b_easy desc);
 create index if not exists profiles_b_normal on profiles (b_normal desc);
 create index if not exists profiles_b_hard on profiles (b_hard desc);
 create index if not exists profiles_b_nightmare on profiles (b_nightmare desc);
+
+-- Pseudos interdits (modifiable par l'administrateur dans Table Editor > blocked_names, ou avec admin_block_name).
+--   mode 'exact'    : interdit seulement ce pseudo-là (ex. admin)
+--   mode 'contains' : interdit tout pseudo qui CONTIENT le mot (ex. un gros mot)
+-- La comparaison ignore majuscules, accents, espaces, ponctuation, chiffres-lettres (4=a, 3=e, 0=o...) et lettres répétées.
+create table if not exists blocked_names (
+  word text primary key,
+  mode text not null default 'contains' check (mode in ('exact', 'contains')),
+  note text,
+  added_at timestamptz not null default now()
+);
+-- Historique des changements de pseudo
+create table if not exists name_history (
+  id bigint generated always as identity primary key,
+  uid uuid not null,
+  old_name text,
+  new_name text not null,
+  changed_at timestamptz not null default now()
+);
+insert into blocked_names (word, mode, note) values
+  ('admin', 'exact', 'réservé'), ('administrateur', 'exact', 'réservé'), ('moderateur', 'exact', 'réservé'),
+  ('modo', 'exact', 'réservé'), ('staff', 'exact', 'réservé'), ('support', 'exact', 'réservé'), ('plusoumoins', 'exact', 'réservé')
+on conflict (word) do nothing;
 
 create table if not exists games (
   id uuid primary key default gen_random_uuid(),
@@ -169,6 +195,8 @@ alter table duels enable row level security;
 alter table duel_secrets enable row level security;
 alter table duel_players enable row level security;
 alter table duel_queue enable row level security;
+alter table blocked_names enable row level security;
+alter table name_history enable row level security;
 alter table cfg_levels enable row level security;
 alter table cfg_rarities enable row level security;
 alter table cfg_pets enable row level security;
@@ -184,7 +212,7 @@ begin
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
-revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue from anon, authenticated;
+revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history from anon, authenticated;
 revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
 
 -- =====================================================================
@@ -306,6 +334,136 @@ set search_path = public as $$
       from cfg_missions where active))
 $$;
 
+-- ---------- Pseudos : règles, liste noire, changement réel ----------
+-- Forme "comparable" d'un pseudo : minuscules, sans accents, sans espaces ni ponctuation,
+-- chiffres/symboles courants remplacés par des lettres, lettres répétées réduites.
+create or replace function _name_norm(p text) returns text language sql immutable
+set search_path = public as $$
+  select regexp_replace(
+           regexp_replace(
+             translate(lower(coalesce(p, '')),
+               'àáâãäåçèéêëìíîïñòóôõöùúûüýÿ0134578@$!',
+               'aaaaaaceeeeiiiinooooouuuuyyoieastbasi'),
+             '[^a-z0-9]', '', 'g'),
+           '(.)\1+', '\1', 'g')
+$$;
+
+create or replace function _name_blocked(p text) returns boolean language plpgsql stable security definer
+set search_path = public as $$
+declare n text := _name_norm(p);
+begin
+  if n = '' then return false; end if;
+  return exists (
+    select 1 from blocked_names b
+    where length(_name_norm(b.word)) > 0
+      and ((b.mode = 'exact' and _name_norm(b.word) = n)
+        or (b.mode = 'contains' and position(_name_norm(b.word) in n) > 0)));
+end $$;
+
+-- Règles d'un pseudo. Renvoie le pseudo nettoyé, ou lève : bad_name | forbidden_name | name_taken.
+create or replace function _check_name(p_name text, p_uid uuid) returns text language plpgsql stable security definer
+set search_path = public as $$
+declare v text := btrim(regexp_replace(coalesce(p_name, ''), '[[:space:]]+', ' ', 'g'));
+begin
+  if char_length(v) < 2 or char_length(v) > 14 then raise exception 'bad_name'; end if;
+  if v !~ '^[[:alnum:] _.''-]+$' or v !~ '[[:alnum:]]' then raise exception 'bad_name'; end if;   -- lettres, chiffres, espace _ . ' -
+  if _name_blocked(v) then raise exception 'forbidden_name'; end if;
+  if exists (select 1 from profiles where name_lower = lower(v) and id is distinct from p_uid) then raise exception 'name_taken'; end if;
+  return v;
+end $$;
+
+-- Garde-fou sur la table elle-même : TOUT changement de pseudo (même fait à la main dans Table Editor)
+-- est vérifié, met à jour l'identifiant de connexion "name_lower" et garde une trace.
+create or replace function _profiles_name_guard() returns trigger language plpgsql security definer
+set search_path = public, auth as $$
+begin
+  if tg_op = 'INSERT' or new.name is distinct from old.name then
+    new.name := _check_name(new.name, new.id);
+  end if;
+  new.name_lower := lower(new.name);
+  if tg_op = 'INSERT' then
+    if new.login_email is null then select email into new.login_email from auth.users where id = new.id; end if;
+  else
+    new.login_email := coalesce(old.login_email, new.login_email);   -- l'identifiant permanent ne change jamais
+    if new.name is distinct from old.name then
+      insert into name_history (uid, old_name, new_name) values (new.id, old.name, new.name);
+      update duel_players set name = new.name where uid = new.id;
+      update duels set winner_name = new.name where winner = new.id;
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_name_guard on profiles;
+create trigger profiles_name_guard before insert or update of name, name_lower on profiles
+  for each row execute function _profiles_name_guard();
+
+-- Comptes déjà existants : on fige leur identifiant de connexion actuel.
+update profiles p set login_email = u.email from auth.users u where u.id = p.id and p.login_email is null;
+create unique index if not exists profiles_login_email on profiles (login_email);
+
+-- Appelées par le jeu AVANT la connexion (donc ouvertes à tous) :
+-- pseudo -> identifiant de connexion permanent (null si aucun joueur ne porte ce pseudo)
+create or replace function resolve_login(p_name text) returns text language sql stable security definer
+set search_path = public as $$
+  select login_email from profiles where name_lower = lower(btrim(regexp_replace(coalesce(p_name, ''), '[[:space:]]+', ' ', 'g')))
+$$;
+-- vérification d'un pseudo avant création : ok | bad_name | forbidden_name | name_taken
+create or replace function check_name(p_name text) returns text language plpgsql stable security definer
+set search_path = public as $$
+begin
+  perform _check_name(p_name, null);
+  return 'ok';
+exception when others then
+  return case when sqlerrm in ('bad_name', 'forbidden_name', 'name_taken') then sqlerrm else 'bad_name' end;
+end $$;
+-- Création de compte refusée après coup (pseudo pris entre-temps...) : on supprime le compte vide.
+create or replace function cancel_signup() returns boolean language plpgsql volatile security definer
+set search_path = public, auth as $$
+declare v uuid := auth.uid();
+begin
+  if v is null or exists (select 1 from profiles where id = v) then return false; end if;
+  delete from auth.users where id = v;
+  return true;
+end $$;
+
+-- ---------- Outils administrateur (à lancer dans Supabase > SQL Editor ; JAMAIS appelables depuis le jeu) ----------
+--   select admin_rename_player('AncienPseudo', 'NouveauPseudo');
+--   select admin_block_name('motinterdit');            -- ou admin_block_name('admin', 'exact', 'réservé')
+--   select admin_unblock_name('motinterdit');
+--   select * from admin_blocked_players();             -- joueurs dont le pseudo actuel est interdit
+create or replace function admin_rename_player(p_current text, p_new text) returns jsonb language plpgsql volatile
+set search_path = public as $$
+declare v_id uuid; v_old text;
+begin
+  select id, name into v_id, v_old from profiles
+    where name_lower = lower(btrim(regexp_replace(coalesce(p_current, ''), '[[:space:]]+', ' ', 'g')));
+  if not found then raise exception 'unknown_player'; end if;
+  update profiles set name = p_new where id = v_id;       -- le garde-fou vérifie tout et met à jour la connexion
+  return jsonb_build_object('id', v_id, 'old', v_old, 'new', (select name from profiles where id = v_id));
+end $$;
+create or replace function admin_rename_player_id(p_id uuid, p_new text) returns jsonb language plpgsql volatile
+set search_path = public as $$
+declare v_old text;
+begin
+  select name into v_old from profiles where id = p_id;
+  if not found then raise exception 'unknown_player'; end if;
+  update profiles set name = p_new where id = p_id;
+  return jsonb_build_object('id', p_id, 'old', v_old, 'new', (select name from profiles where id = p_id));
+end $$;
+create or replace function admin_block_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
+language plpgsql volatile set search_path = public as $$
+begin
+  if length(_name_norm(p_word)) = 0 then raise exception 'bad_word'; end if;
+  insert into blocked_names (word, mode, note) values (btrim(p_word), p_mode, p_note)
+    on conflict (word) do update set mode = excluded.mode, note = coalesce(excluded.note, blocked_names.note);
+  return 'ok';
+end $$;
+create or replace function admin_unblock_name(p_word text) returns text language plpgsql volatile
+set search_path = public as $$
+begin delete from blocked_names where lower(word) = lower(btrim(p_word)); return 'ok'; end $$;
+create or replace function admin_blocked_players() returns table (id uuid, name text) language sql stable security definer
+set search_path = public as $$ select id, name from profiles where _name_blocked(name) order by name $$;
+
 -- Connexion / création du profil. Chaque appel ouvre une NOUVELLE session :
 -- l'ancien appareil connecté au même compte est éjecté à son prochain appel.
 create or replace function login_session(p_name text default null) returns jsonb language plpgsql volatile security definer
@@ -316,9 +474,8 @@ begin
   if not exists (select 1 from profiles where id = v_uid) then
     v_name := btrim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g'));
     if p_name is null then raise exception 'no_profile'; end if;
-    if char_length(v_name) < 2 or char_length(v_name) > 14 then raise exception 'bad_name'; end if;
     begin
-      insert into profiles (id, name, name_lower) values (v_uid, v_name, lower(v_name));
+      insert into profiles (id, name, name_lower) values (v_uid, v_name, lower(v_name));   -- pseudo vérifié par le garde-fou
     exception when unique_violation then
       raise exception 'name_taken';
     end;
@@ -777,10 +934,12 @@ begin
   for r in select p.oid::regprocedure as sig, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.prokind = 'f' loop
     execute format('revoke all on function %s from public, anon, authenticated', r.sig);
-    if left(r.proname, 1) <> '_' then
+    if left(r.proname, 1) <> '_' and left(r.proname, 6) <> 'admin_' then
       execute format('grant execute on function %s to authenticated', r.sig);
     end if;
   end loop;
   grant execute on function get_config() to anon;
+  grant execute on function resolve_login(text) to anon;
+  grant execute on function check_name(text) to anon;
 end $$;
 grant select on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions to anon, authenticated;
