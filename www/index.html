@@ -299,13 +299,20 @@ button:disabled { cursor: default; }
 .fbtn svg { width: 20px; height: 20px; }
 .fbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); font: 700 0.7rem/18px var(--font-body); text-align: center; }
 #menu { position: relative; }
+.fbtn.second { top: 48px; }
+.tabs.two { grid-template-columns: repeat(2, 1fr); }
+.fwrap { display: grid; gap: 6px; }
+.fwrap > .frow.tap { cursor: pointer; }
+.fmore { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 6px 2px; }
+.fsmall.danger { color: #c0392b; border-color: #f3c3bd; }
 .codebox { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .codebox .dbig { letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
 .copybtn { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; box-shadow: 0 2px 0 var(--line); touch-action: manipulation; }
 .dbox > * { min-width: 0; }
 .addrow { display: flex; gap: 8px; min-width: 0; }
-.addrow input { flex: 1 1 0; width: 0; min-width: 0; min-height: 54px; border: 3px solid var(--accent); border-radius: 20px; background: var(--surface); color: var(--fg); font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; padding: 8px 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-.addrow input::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 1rem; }
+.clinput, .addrow input { flex: 1 1 0; width: 0; min-width: 0; min-height: 54px; border: 3px solid var(--accent); border-radius: 20px; background: var(--surface); color: var(--fg); font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; padding: 8px 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.clinput { width: 100%; flex: none; text-transform: none !important; letter-spacing: 0 !important; }
+.clinput::placeholder, .addrow input::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 1rem; }
 .addrow .btn { flex: none; width: auto; padding-inline: 16px; margin-right: 2px; }
 .frow { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 8px 12px; }
 .frow .pet { width: 34px; height: 34px; flex: none; }
@@ -543,6 +550,10 @@ button:disabled { cursor: default; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>
       <span class="fbadge" id="friend-badge" hidden>0</span>
     </button>
+    <button class="fbtn second" id="open-clubs" type="button" aria-label="Clubs" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8-7 10-4-2-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span class="fbadge" id="club-badge" hidden>0</span>
+    </button>
     <div class="mascot-wrap"><div class="mascot" id="mascot-menu"></div></div>
     <div class="teamrow" id="teamrow"></div>
     <h1><span class="p">Plus</span> ou <span class="m">Moins</span> ?</h1>
@@ -646,6 +657,55 @@ button:disabled { cursor: default; }
     <div id="fr-in-box" hidden><div class="fsec">Demandes reçues</div><div class="rows" id="fr-in"></div></div>
     <div id="fr-out-box" hidden><div class="fsec">Demandes envoyées</div><div class="rows" id="fr-out"></div></div>
     <div><div class="fsec" id="fr-title">Mes amis</div><div class="rows" id="fr-list"></div></div>
+  </section>
+
+  <section class="view" id="club" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title" id="cl-title">Clubs</h2>
+    <p class="note" id="cl-note" aria-live="polite"></p>
+
+    <div id="cl-none" hidden>
+      <form class="dbox" id="cl-create" autocomplete="off">
+        <label for="cl-name"><b>Créer un club</b></label>
+        <input id="cl-name" type="text" class="clinput" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Nom du club (3 à 20 caractères)">
+        <div class="tabs two" id="cl-cmode" role="group" aria-label="Adhésion">
+          <button class="tab" type="button" data-m="open" aria-selected="true">Ouvert</button>
+          <button class="tab" type="button" data-m="request" aria-selected="false">Sur demande</button>
+        </div>
+        <span class="dsmall" style="text-align:left" id="cl-chelp"></span>
+        <button class="btn btn-main" type="submit" id="cl-create-go">Créer le club</button>
+      </form>
+      <form class="dbox" id="cl-searchform" autocomplete="off">
+        <label for="cl-search"><b>Rejoindre un club</b></label>
+        <div class="addrow">
+          <input id="cl-search" type="text" class="clinput" maxlength="20" autocomplete="off" placeholder="Rechercher un nom">
+          <button class="btn btn-soft" type="submit">Chercher</button>
+        </div>
+      </form>
+      <div class="rows" id="cl-list"></div>
+    </div>
+
+    <div id="cl-in" hidden>
+      <div class="dbox">
+        <div class="dbig" id="cl-nameshow"></div>
+        <span class="dsmall" style="text-align:left" id="cl-meta"></span>
+      </div>
+      <div id="cl-req-box" hidden><div class="fsec">Demandes d'adhésion</div><div class="rows" id="cl-req"></div></div>
+      <div><div class="fsec" id="cl-mem-title">Membres</div><div class="rows" id="cl-members"></div></div>
+      <form class="dbox" id="cl-set" autocomplete="off" hidden>
+        <label for="cl-newname"><b>Réglages du club</b></label>
+        <input id="cl-newname" type="text" class="clinput" maxlength="20" autocomplete="off" spellcheck="false">
+        <div class="tabs two" id="cl-smode" role="group" aria-label="Adhésion">
+          <button class="tab" type="button" data-m="open" aria-selected="true">Ouvert</button>
+          <button class="tab" type="button" data-m="request" aria-selected="false">Sur demande</button>
+        </div>
+        <button class="btn btn-soft" type="submit" id="cl-save">Enregistrer</button>
+      </form>
+      <button class="linkbtn" id="cl-leave" type="button">Quitter le club</button>
+      <button class="linkbtn danger" id="cl-disband" type="button" hidden>Dissoudre le club</button>
+    </div>
   </section>
 
   <section class="view" id="missions" hidden>
@@ -857,7 +917,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions", "friends"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions", "friends", "club"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -1364,7 +1424,8 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     $("logout").textContent = mode === "guest" ? "Créer un compte" : "Se déconnecter";
     $("open-del").textContent = mode === "guest" ? "Effacer mes données" : "Supprimer mon compte";
     $("open-friends").hidden = mode !== "account";
-    if (mode === "account") refreshFriends(true);
+    $("open-clubs").hidden = mode !== "account";
+    if (mode === "account") { refreshFriends(true); refreshClub(true); }
     show("menu");
     if (!dailyChecked) { dailyChecked = true; if (!dailyInfo().claimed) openDaily(); }
   }
@@ -1423,14 +1484,14 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (s.phase === "menu") $("coins").textContent = fmtInt(me.coins);
   }
   var sessTimer = null;
-  var friendTimer = null, friendsData = null, frBusy = false;
-  function stopSession() { clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; ctx.sid = null; }
+  var friendTimer = null, friendsData = null, frBusy = false, clubData = null, clBusy = false, clList = [], clSrvName = null, clSrvMode = null, clQuery = "", clMode = "open", clSet = "open", clOpenUid = null;
+  function stopSession() { clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; clubData = null; ctx.sid = null; }
   function checkSession() { if (mode === "account" && ctx.sid && !document.hidden) srv("check_session").catch(function () {}); }
   function startSessionWatch() {
     clearInterval(sessTimer);
     sessTimer = setInterval(checkSession, 15000);
     clearInterval(friendTimer);
-    friendTimer = setInterval(function () { if (!document.hidden && (s.phase === "menu" || s.phase === "friends")) refreshFriends(true); }, 30000);
+    friendTimer = setInterval(function () { if (!document.hidden && (s.phase === "menu" || s.phase === "friends" || s.phase === "club")) { refreshFriends(true); refreshClub(true); } }, 30000);
   }
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { checkSession(); if (duelCur && !duelCur.ended) pollDuel(); } });
   function kickedOut(code) {
@@ -2407,6 +2468,173 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     else { $("dailybox").hidden = true; openEgg(r.egg, true); }
   }
 
+  /* ---------- clubs ---------- */
+  function clNote(text, warn) { var n = $("cl-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
+  function clErr(e) {
+    var c = e && e.code;
+    if (c === "name_taken") return "Ce nom de club est déjà pris.";
+    if (c === "forbidden_name") return "Ce nom de club n'est pas autorisé. Choisis-en un autre.";
+    if (c === "bad_name") return "Le nom d'un club fait 3 à 20 caractères : lettres, chiffres, espace, _ . ' ou -.";
+    if (c === "forbidden") return "Tu n'as pas le droit de faire ça.";
+    return "Action impossible pour le moment. Vérifie ta connexion.";
+  }
+  var ROLE_LABEL = { leader: "Chef", officer: "Officier", member: "Membre" };
+  function setClubBadge() {
+    var c = clubData && clubData.club, n = c && c.requests ? c.requests.length : 0, b = $("club-badge");
+    b.hidden = !(n > 0); b.textContent = n > 9 ? "9+" : String(n);
+    $("open-clubs").setAttribute("aria-label", n > 0 ? "Clubs (" + n + (n > 1 ? " demandes)" : " demande)") : "Clubs");
+  }
+  function refreshClub(quiet) {
+    if (mode !== "account" || !ctx.sid) return Promise.resolve();
+    return srv("club_me").then(function (d) {
+      clubData = d;
+      setClubBadge();
+      if (s.phase === "club") renderClub();
+    }).catch(function () { if (!quiet && s.phase === "club") clNote("Impossible de charger les clubs. Vérifie ta connexion.", true); });
+  }
+  function loadClubList() {
+    return srv("club_list", { p_q: clQuery }).then(function (l) { clList = Array.isArray(l) ? l : []; if (s.phase === "club") renderClub(); })
+      .catch(function () { clNote("Impossible de charger la liste des clubs.", true); });
+  }
+  function goClub() {
+    if (mode !== "account") return;
+    stopTimer();
+    s.phase = "club";
+    clNote("");
+    renderClub();
+    show("club");
+    refreshClub(false).then(function () { if (!(clubData && clubData.club)) loadClubList(); });
+  }
+  function modeHelp(m) { return m === "open" ? "Ouvert : tout le monde peut entrer directement." : "Sur demande : le chef ou un officier accepte les nouveaux membres."; }
+  function setTabs(box, m) {
+    var bs = box.querySelectorAll(".tab");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-selected", bs[i].dataset.m === m ? "true" : "false");
+  }
+  function clRow(name, sub, btns, pet) {
+    return frRow({ name: name, pet: pet || "" }, btns, sub);
+  }
+  function renderClub() {
+    var c = clubData && clubData.club;
+    $("cl-none").hidden = !!c; $("cl-in").hidden = !c;
+    if (!c) {
+      $("cl-title").textContent = "Clubs";
+      setTabs($("cl-cmode"), clMode);
+      $("cl-chelp").textContent = modeHelp(clMode);
+      var pend = (clubData && clubData.pending) || [];
+      var box = $("cl-list"); box.innerHTML = "";
+      if (!clList.length) {
+        var e = document.createElement("p"); e.className = "note";
+        e.textContent = clQuery ? "Aucun club ne correspond à cette recherche." : "Aucun club pour l'instant. Crée le premier !";
+        box.appendChild(e);
+      }
+      clList.forEach(function (k) {
+        var full = k.members >= k.cap, asked = pend.indexOf(k.id) >= 0, btn;
+        if (asked) btn = { label: "Annuler", cls: "quiet", aria: "Annuler la demande à", fn: function () { clAct("club_cancel_request", { p_id: k.id }); } };
+        else if (full) btn = { label: "Complet", cls: "quiet", fn: function () {} };
+        else btn = { label: k.mode === "open" ? "Rejoindre" : "Demander", cls: "ok", aria: "Rejoindre", fn: function () { clAct("club_join", { p_id: k.id }, k); } };
+        var row = clRow(k.name, k.members + "/" + k.cap + " · " + (k.mode === "open" ? "Ouvert" : "Sur demande") + " · " + fmtInt(k.score) + " tr." + (asked ? " · demande envoyée" : ""), [btn]);
+        if (full || asked) { var bb = row.querySelector("button"); if (full) bb.disabled = true; }
+        box.appendChild(row);
+      });
+      return;
+    }
+    var role = c.role, boss = role === "leader", mod = boss || role === "officer";
+    $("cl-title").textContent = "Mon club";
+    $("cl-nameshow").textContent = c.name;
+    var tot = 0; c.members.forEach(function (m) { tot += m.trophies || 0; });
+    $("cl-meta").textContent = c.members.length + "/" + c.cap + " membres · " + (c.mode === "open" ? "Ouvert" : "Sur demande") + " · " + fmtInt(tot) + " trophées · Ton rôle : " + ROLE_LABEL[role];
+    $("cl-req-box").hidden = !(mod && c.requests.length);
+    var rq = $("cl-req"); rq.innerHTML = "";
+    (mod ? c.requests : []).forEach(function (r) {
+      rq.appendChild(frRow(r, [
+        { label: "Accepter", cls: "ok", aria: "Accepter", fn: function () { clAct("club_respond", { p_uid: r.uid, p_accept: true }); } },
+        { label: "Refuser", cls: "quiet", aria: "Refuser", fn: function () { clAct("club_respond", { p_uid: r.uid, p_accept: false }); } }
+      ], typeof r.trophies === "number" ? fmtInt(r.trophies) + " trophées" : ""));
+    });
+    $("cl-mem-title").textContent = "Membres (" + c.members.length + ")";
+    var ml = $("cl-members"); ml.innerHTML = "";
+    c.members.forEach(function (m) {
+      var acts = [];
+      if (boss && m.role !== "leader") {
+        acts.push({ label: m.role === "officer" ? "Retirer officier" : "Nommer officier", cls: "", fn: function () { clAct("club_role", { p_uid: m.uid, p_role: m.role === "officer" ? "member" : "officer" }); } });
+        acts.push({ label: "Passer le rôle de chef", cls: "", fn: function () { if (clAsk("Donner la direction du club à " + m.name + " ? Tu deviendras officier.")) clAct("club_role", { p_uid: m.uid, p_role: "leader" }); } });
+      }
+      if (mod && m.role !== "leader" && (boss || m.role === "member") && m.uid !== (ctx.uid || "")) {
+        acts.push({ label: "Exclure", cls: "danger", fn: function () { if (clAsk("Exclure " + m.name + " du club ?")) clAct("club_kick", { p_uid: m.uid }); } });
+      }
+      var sub = ROLE_LABEL[m.role] + " · " + fmtInt(m.trophies || 0) + " tr.";
+      var wrap = document.createElement("div"); wrap.className = "fwrap";
+      var row = frRow(m, [], sub);
+      wrap.appendChild(row);
+      if (acts.length) {
+        row.classList.add("tap");
+        row.setAttribute("role", "button"); row.setAttribute("tabindex", "0");
+        var more = document.createElement("div"); more.className = "fmore"; more.hidden = clOpenUid !== m.uid;
+        acts.forEach(function (a) {
+          var x = document.createElement("button"); x.type = "button"; x.className = "fsmall" + (a.cls ? " " + a.cls : ""); x.textContent = a.label;
+          x.addEventListener("click", a.fn); more.appendChild(x);
+        });
+        var tog = function () { clOpenUid = clOpenUid === m.uid ? null : m.uid; more.hidden = clOpenUid !== m.uid; };
+        row.addEventListener("click", tog);
+        row.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } });
+        wrap.appendChild(more);
+      }
+      ml.appendChild(wrap);
+    });
+    $("cl-set").hidden = !boss;
+    if (boss) {                                   // settings form: follow the server only when it changed, never overwrite typing
+      if (clSrvName !== c.name) { clSrvName = c.name; $("cl-newname").value = c.name; }
+      if (clSrvMode !== c.mode) { clSrvMode = c.mode; clSet = c.mode; }
+      setTabs($("cl-smode"), clSet);
+    } else { clSrvName = null; clSrvMode = null; }
+    $("cl-disband").hidden = !boss;
+    $("cl-leave").textContent = "Quitter le club";
+  }
+  function clAsk(msg) { try { return window.confirm(msg); } catch (e) { return true; } }
+  /* one action at a time; server decides everything, then we refresh */
+  function clAct(fn, args, k) {
+    if (clBusy) return;
+    clBusy = true;
+    srv(fn, args).then(function (r) {
+      clBusy = false;
+      var st = r && r.status;
+      var msg = {
+        joined: "Tu as rejoint le club !", requested: "Demande envoyée. Le chef ou un officier va la traiter.",
+        in_club: "Tu fais déjà partie d'un club.", full: "Ce club est complet.", gone: "Cette personne ou ce club n'existe plus.",
+        already_requested: "Tu as déjà fait une demande à ce club.", too_many: "Tu as déjà 3 demandes en attente. Annule-en une d'abord.",
+        accepted: "Nouveau membre accepté.", declined: "Demande refusée.", kicked: "Membre exclu.", ok: "", left: "Tu as quitté le club.", closed: "Le club a été fermé."
+      }[st];
+      clNote(msg || "", st === "in_club" || st === "full" || st === "gone" || st === "already_requested" || st === "too_many");
+      if (r && r.club !== undefined) clubData = { club: r.club, pending: [] };
+      return refreshClub(true).then(function () { if (!(clubData && clubData.club)) return loadClubList(); });
+    }).catch(function (e) { clBusy = false; clNote(clErr(e), true); });
+  }
+  function onClubCreate(e) {
+    e.preventDefault();
+    var name = $("cl-name").value.replace(/\s+/g, " ").trim();
+    if (name.length < 3 || name.length > 20) { clNote("Le nom d'un club fait 3 à 20 caractères.", true); return; }
+    if (clBusy) return;
+    clBusy = true; $("cl-create-go").disabled = true;
+    srv("club_create", { p_name: name, p_mode: clMode }).then(function (r) {
+      clBusy = false;
+      if (r && r.status === "created") { clubData = { club: r.club, pending: [] }; $("cl-name").value = ""; clNote("Club créé !"); setClubBadge(); renderClub(); }
+      else clNote("Tu fais déjà partie d'un club.", true);
+    }).catch(function (err) { clBusy = false; clNote(clErr(err), true); })
+      .then(function () { $("cl-create-go").disabled = false; });
+  }
+  function onClubSave(e) {
+    e.preventDefault();
+    var name = $("cl-newname").value.replace(/\s+/g, " ").trim();
+    if (name.length < 3 || name.length > 20) { clNote("Le nom d'un club fait 3 à 20 caractères.", true); return; }
+    if (clBusy) return;
+    clBusy = true; $("cl-save").disabled = true;
+    srv("club_update", { p_name: name, p_mode: clSet }).then(function (r) {
+      clBusy = false;
+      if (r && r.club) { clubData = { club: r.club, pending: [] }; clNote("Réglages enregistrés."); setClubBadge(); renderClub(); }
+    }).catch(function (err) { clBusy = false; clNote(clErr(err), true); })
+      .then(function () { $("cl-save").disabled = false; });
+  }
+
   /* ---------- friends: personal code, requests, list ---------- */
   function setFriendBadge(n) {
     var b = $("friend-badge");
@@ -3033,6 +3261,14 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
   });
   $("open-friends").addEventListener("click", goFriends);
+  $("open-clubs").addEventListener("click", goClub);
+  $("cl-create").addEventListener("submit", onClubCreate);
+  $("cl-set").addEventListener("submit", onClubSave);
+  $("cl-cmode").addEventListener("click", function (e) { var b = e.target.closest(".tab"); if (!b) return; clMode = b.dataset.m; setTabs($("cl-cmode"), clMode); $("cl-chelp").textContent = modeHelp(clMode); });
+  $("cl-smode").addEventListener("click", function (e) { var b = e.target.closest(".tab"); if (!b) return; clSet = b.dataset.m; setTabs($("cl-smode"), clSet); });
+  $("cl-searchform").addEventListener("submit", function (e) { e.preventDefault(); clQuery = $("cl-search").value.replace(/\s+/g, " ").trim(); loadClubList(); });
+  $("cl-leave").addEventListener("click", function () { if (clAsk("Quitter le club ?")) clAct("club_leave", {}); });
+  $("cl-disband").addEventListener("click", function () { if (clAsk("Dissoudre le club ? Tous les membres seront retirés et le club sera supprimé.")) clAct("club_disband", {}); });
   $("fr-form").addEventListener("submit", onFriendAdd);
   $("fr-copy").addEventListener("click", copyFriendCode);
   $("duel-casual").addEventListener("click", function () { startSearch("casual"); });

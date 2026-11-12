@@ -72,3 +72,28 @@ Un petit bouton « personne + » en haut à droite du menu ouvre l'écran **Amis
 - Protections côté serveur : pas de demande à soi-même, pas de doublon (même si les deux joueurs s'écrivent en même temps : si l'autre t'avait déjà demandé, vous devenez amis directement), on ne peut répondre qu'à ses propres demandes, 10 mauvais codes en 10 minutes = pause, plafond de 100 amis et 20 demandes en attente.
 
 **À faire une fois :** recolle `schema.sql` en entier (relançable sans risque).
+
+## Clubs (nouveau)
+
+Un second petit bouton (bouclier), juste sous celui des amis, ouvre l'écran **Clubs** (invisible pour les invités). Une pastille indique les demandes d'adhésion à traiter si tu es chef ou officier.
+
+**Règles** (toutes vérifiées par le serveur) :
+- Un joueur est dans **un seul club** à la fois. Nom : 3 à 20 caractères (lettres, chiffres, espace, `_ . ' -`), unique (majuscules ignorées), pas dans la liste noire.
+- Deux types de club, au choix du chef (modifiable) : **Ouvert** (on entre directement) ou **Sur demande** (le chef ou un officier accepte/refuse). Passer un club en « Ouvert » accepte les demandes en attente tant qu'il y a de la place.
+- **Chef** : tout gérer (réglages, officiers, exclusion, passer la direction, dissoudre). **Officier** : traiter les demandes et exclure les simples membres. **Membre** : voir le club et le quitter.
+- Si le chef quitte, la direction passe à un officier (sinon au plus ancien membre). Le dernier membre qui part ferme le club.
+- Maximum 30 membres par club, 3 demandes en attente par joueur. Un club est classé selon le total des trophées de ses membres.
+
+**Liste noire des noms de clubs** : table `blocked_club_names` (Table Editor) ou par commande ; la liste des pseudos interdits s'applique aussi aux noms de clubs.
+
+```sql
+select admin_block_club_name('motinterdit');                 -- interdit tout nom qui CONTIENT ce mot
+select admin_block_club_name('officiel', 'exact', 'réservé'); -- seulement ce nom exact
+select admin_unblock_club_name('motinterdit');
+select admin_rename_club('AncienNom', 'NouveauNom');         -- renommer un club
+select * from admin_blocked_clubs();                          -- clubs dont le nom est (devenu) interdit
+```
+
+Les limites (`club_cap`, `club_max_requests`) se règlent dans `cfg_settings`.
+
+**À faire une fois :** recolle `schema.sql` en entier (relançable sans risque), puis installe le nouvel APK.

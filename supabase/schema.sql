@@ -57,7 +57,7 @@ insert into cfg_eggs (id, name, price, odds, uni) values
 on conflict (id) do nothing;
 insert into cfg_settings (key, value) values
   ('shiny_chance', 3), ('shiny_mult', 1.5), ('shiny_sell_mult', 4), ('uni_weight', 5), ('coin_div', 150),
-  ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5)
+  ('club_cap', 30), ('club_max_requests', 3), ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5)
 on conflict (key) do nothing;
 insert into cfg_daily (day_idx, coins, egg) values
   (0, 15, null), (1, 20, null), (2, 25, null), (3, 35, null), (4, 45, null), (5, 60, null), (6, null, 'etoile')
@@ -206,6 +206,42 @@ create index if not exists friendships_b on friendships (b);
 create table if not exists friend_attempts (uid uuid not null, at timestamptz not null default now());
 create index if not exists friend_attempts_uid on friend_attempts (uid, at);
 
+-- Clubs : un joueur est dans 0 ou 1 club. Rôles : chef (1), officiers, membres.
+create table if not exists clubs (
+  id bigint generated always as identity primary key,
+  name text not null,
+  name_lower text not null,
+  join_mode text not null default 'open' check (join_mode in ('open', 'request')),
+  created_at timestamptz not null default now()
+);
+create unique index if not exists clubs_name_lower on clubs (name_lower);
+create table if not exists club_members (
+  uid uuid primary key references profiles (id) on delete cascade,        -- uid unique : un seul club par joueur
+  club_id bigint not null references clubs (id) on delete cascade,
+  role text not null default 'member' check (role in ('leader', 'officer', 'member')),
+  joined_at timestamptz not null default now()
+);
+create index if not exists club_members_club on club_members (club_id);
+create unique index if not exists club_one_leader on club_members (club_id) where role = 'leader';
+create table if not exists club_requests (
+  club_id bigint not null references clubs (id) on delete cascade,
+  uid uuid not null references profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (club_id, uid)
+);
+create index if not exists club_requests_uid on club_requests (uid);
+-- Noms de clubs interdits (modifiable dans Table Editor > blocked_club_names). La liste des pseudos interdits s'applique aussi.
+create table if not exists blocked_club_names (
+  word text primary key,
+  mode text not null default 'contains' check (mode in ('exact', 'contains')),
+  note text,
+  added_at timestamptz not null default now()
+);
+insert into blocked_club_names (word, mode, note) values
+  ('plusoumoins', 'exact', 'réservé'), ('officiel', 'exact', 'réservé'), ('admin', 'exact', 'réservé'),
+  ('staff', 'exact', 'réservé'), ('support', 'exact', 'réservé')
+on conflict (word) do nothing;
+
 -- Sécurité : RLS activée partout. Seuls les réglages (cfg_*) sont lisibles.
 alter table profiles enable row level security;
 alter table games enable row level security;
@@ -215,6 +251,10 @@ alter table duel_players enable row level security;
 alter table duel_queue enable row level security;
 alter table blocked_names enable row level security;
 alter table friendships enable row level security;
+alter table clubs enable row level security;
+alter table club_members enable row level security;
+alter table club_requests enable row level security;
+alter table blocked_club_names enable row level security;
 alter table friend_attempts enable row level security;
 alter table name_history enable row level security;
 alter table cfg_levels enable row level security;
@@ -232,7 +272,7 @@ begin
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
-revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history, friendships, friend_attempts from anon, authenticated;
+revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_names, name_history, friendships, friend_attempts, clubs, club_members, club_requests, blocked_club_names from anon, authenticated;
 revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
 
 -- =====================================================================
@@ -566,6 +606,243 @@ begin
   return jsonb_build_object('status', case when found then 'removed' else 'gone' end);
 end $$;
 
+-- ---------- Clubs ----------
+create or replace function _club_name_blocked(p text) returns boolean language plpgsql stable security definer
+set search_path = public as $$
+declare n text := _name_norm(p);
+begin
+  if n = '' then return false; end if;
+  return _name_blocked(p) or exists (
+    select 1 from blocked_club_names b
+    where length(_name_norm(b.word)) > 0
+      and ((b.mode = 'exact' and _name_norm(b.word) = n)
+        or (b.mode = 'contains' and position(_name_norm(b.word) in n) > 0)));
+end $$;
+
+-- Règles d'un nom de club : 3 à 20 caractères, mêmes caractères que les pseudos, unique, pas interdit.
+create or replace function _check_club_name(p_name text, p_id bigint) returns text language plpgsql stable security definer
+set search_path = public as $$
+declare v text := btrim(regexp_replace(coalesce(p_name, ''), '[[:space:]]+', ' ', 'g'));
+begin
+  if char_length(v) < 3 or char_length(v) > 20 then raise exception 'bad_name'; end if;
+  if v !~ '^[[:alnum:] _.''-]+$' or v !~ '[[:alnum:]]' then raise exception 'bad_name'; end if;
+  if _club_name_blocked(v) then raise exception 'forbidden_name'; end if;
+  if exists (select 1 from clubs where name_lower = lower(v) and id is distinct from p_id) then raise exception 'name_taken'; end if;
+  return v;
+end $$;
+
+-- Garde-fou sur la table : même un changement fait à la main est vérifié.
+create or replace function _clubs_name_guard() returns trigger language plpgsql security definer
+set search_path = public as $$
+begin
+  if tg_op = 'INSERT' or new.name is distinct from old.name then
+    new.name := _check_club_name(new.name, case when tg_op = 'INSERT' then null else new.id end);
+  end if;
+  new.name_lower := lower(new.name);
+  return new;
+end $$;
+drop trigger if exists clubs_name_guard on clubs;
+create trigger clubs_name_guard before insert or update of name, name_lower on clubs
+  for each row execute function _clubs_name_guard();
+
+-- Mon club (ou null) : infos, membres, et demandes en attente si je peux les traiter.
+create or replace function _club_state(p_uid uuid) returns jsonb language plpgsql stable security definer
+set search_path = public as $$
+declare m club_members; c clubs;
+begin
+  select * into m from club_members where uid = p_uid;
+  if not found then return null; end if;
+  select * into c from clubs where id = m.club_id;
+  return jsonb_build_object('id', c.id, 'name', c.name, 'mode', c.join_mode, 'role', m.role, 'cap', _setting('club_cap')::int,
+    'members', (select jsonb_agg(jsonb_build_object('uid', x.uid, 'name', p.name, 'pet', coalesce(p.team ->> 0, ''), 'trophies', p.trophies, 'role', x.role)
+                 order by case x.role when 'leader' then 0 when 'officer' then 1 else 2 end, lower(p.name))
+                from club_members x join profiles p on p.id = x.uid where x.club_id = c.id),
+    'requests', case when m.role in ('leader', 'officer') then
+        coalesce((select jsonb_agg(jsonb_build_object('uid', r.uid, 'name', p.name, 'pet', coalesce(p.team ->> 0, ''), 'trophies', p.trophies) order by r.created_at)
+                  from club_requests r join profiles p on p.id = r.uid where r.club_id = c.id), '[]') else '[]'::jsonb end);
+end $$;
+
+create or replace function club_me(p_sid text) returns jsonb language plpgsql stable security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  return jsonb_build_object('club', _club_state(v_uid),
+    'pending', coalesce((select jsonb_agg(club_id) from club_requests where uid = v_uid), '[]'));
+end $$;
+
+-- Liste des clubs (les mieux classés d'abord), avec recherche facultative par nom.
+create or replace function club_list(p_sid text, p_q text default null) returns jsonb language plpgsql stable security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); v_q text := lower(btrim(coalesce(p_q, '')));
+begin
+  return coalesce((select jsonb_agg(row_to_json(x)::jsonb order by x.score desc, x.members desc, x.name) from (
+    select c.id, c.name, c.join_mode as mode, count(m.uid)::int as members, _setting('club_cap')::int as cap, coalesce(sum(p.trophies), 0)::int as score,
+           (select pp.name from club_members lm join profiles pp on pp.id = lm.uid where lm.club_id = c.id and lm.role = 'leader') as leader
+    from clubs c join club_members m on m.club_id = c.id join profiles p on p.id = m.uid
+    where v_q = '' or c.name_lower like '%' || replace(replace(replace(v_q, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    group by c.id order by coalesce(sum(p.trophies), 0) desc, count(m.uid) desc, c.name limit 40) x), '[]');
+end $$;
+
+create or replace function club_create(p_sid text, p_name text, p_mode text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); v_id bigint;
+begin
+  if p_mode not in ('open', 'request') then raise exception 'bad_mode'; end if;
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  if exists (select 1 from club_members where uid = v_uid) then return jsonb_build_object('status', 'in_club'); end if;
+  begin
+    insert into clubs (name, name_lower, join_mode) values (p_name, '', p_mode) returning id into v_id;   -- le garde-fou vérifie le nom
+  exception when unique_violation then raise exception 'name_taken';
+  end;
+  insert into club_members (uid, club_id, role) values (v_uid, v_id, 'leader');
+  delete from club_requests where uid = v_uid;
+  return jsonb_build_object('status', 'created', 'club', _club_state(v_uid));
+end $$;
+
+-- Rejoindre : direct si le club est ouvert, sinon une demande est envoyée.
+create or replace function club_join(p_sid text, p_id bigint) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); c clubs;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  if exists (select 1 from club_members where uid = v_uid) then return jsonb_build_object('status', 'in_club'); end if;
+  select * into c from clubs where id = p_id;
+  if not found then return jsonb_build_object('status', 'gone'); end if;
+  if (select count(*) from club_members where club_id = p_id) >= _setting('club_cap') then return jsonb_build_object('status', 'full'); end if;
+  if c.join_mode = 'open' then
+    insert into club_members (uid, club_id) values (v_uid, p_id);
+    delete from club_requests where uid = v_uid;
+    return jsonb_build_object('status', 'joined', 'club', _club_state(v_uid));
+  end if;
+  if exists (select 1 from club_requests where club_id = p_id and uid = v_uid) then return jsonb_build_object('status', 'already_requested'); end if;
+  if (select count(*) from club_requests where uid = v_uid) >= _setting('club_max_requests') then return jsonb_build_object('status', 'too_many'); end if;
+  insert into club_requests (club_id, uid) values (p_id, v_uid);
+  return jsonb_build_object('status', 'requested');
+end $$;
+
+create or replace function club_cancel_request(p_sid text, p_id bigint) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  delete from club_requests where club_id = p_id and uid = v_uid;
+  return jsonb_build_object('status', 'ok');
+end $$;
+
+-- Chef / officier : accepter ou refuser une demande d'adhésion.
+create or replace function club_respond(p_sid text, p_uid uuid, p_accept boolean) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found or me.role not in ('leader', 'officer') then raise exception 'forbidden'; end if;
+  if not exists (select 1 from club_requests where club_id = me.club_id and uid = p_uid) then return jsonb_build_object('status', 'gone'); end if;
+  if not p_accept then
+    delete from club_requests where club_id = me.club_id and uid = p_uid;
+    return jsonb_build_object('status', 'declined');
+  end if;
+  if exists (select 1 from club_members where uid = p_uid) then
+    delete from club_requests where uid = p_uid;                      -- il a rejoint un autre club entre-temps
+    return jsonb_build_object('status', 'gone');
+  end if;
+  if (select count(*) from club_members where club_id = me.club_id) >= _setting('club_cap') then return jsonb_build_object('status', 'full'); end if;
+  insert into club_members (uid, club_id) values (p_uid, me.club_id);
+  delete from club_requests where uid = p_uid;                         -- ses autres demandes n'ont plus lieu d'être
+  return jsonb_build_object('status', 'accepted');
+end $$;
+
+-- Quitter. Si le chef part, le club passe à un officier (sinon au plus ancien membre) ; le dernier qui part ferme le club.
+create or replace function club_leave(p_sid text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members; v_next uuid;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found then return jsonb_build_object('status', 'none'); end if;
+  delete from club_members where uid = v_uid;
+  if not exists (select 1 from club_members where club_id = me.club_id) then
+    delete from clubs where id = me.club_id;
+    return jsonb_build_object('status', 'closed');
+  end if;
+  if me.role = 'leader' then
+    select uid into v_next from club_members where club_id = me.club_id
+      order by case role when 'officer' then 0 else 1 end, joined_at, uid limit 1;
+    update club_members set role = 'leader' where uid = v_next;
+  end if;
+  return jsonb_build_object('status', 'left');
+end $$;
+
+-- Exclure : le chef exclut n'importe qui ; un officier n'exclut que les simples membres.
+create or replace function club_kick(p_sid text, p_uid uuid) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members; t club_members;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found or me.role not in ('leader', 'officer') or p_uid = v_uid then raise exception 'forbidden'; end if;
+  select * into t from club_members where uid = p_uid and club_id = me.club_id;
+  if not found then return jsonb_build_object('status', 'gone'); end if;
+  if t.role = 'leader' or (me.role = 'officer' and t.role <> 'member') then raise exception 'forbidden'; end if;
+  delete from club_members where uid = p_uid;
+  return jsonb_build_object('status', 'kicked');
+end $$;
+
+-- Chef : nommer / retirer un officier, ou passer la main (role = leader : le chef devient officier).
+create or replace function club_role(p_sid text, p_uid uuid, p_role text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members;
+begin
+  if p_role not in ('officer', 'member', 'leader') then raise exception 'bad_role'; end if;
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found or me.role <> 'leader' or p_uid = v_uid then raise exception 'forbidden'; end if;
+  if not exists (select 1 from club_members where uid = p_uid and club_id = me.club_id) then return jsonb_build_object('status', 'gone'); end if;
+  if p_role = 'leader' then
+    update club_members set role = 'officer' where uid = v_uid;
+    update club_members set role = 'leader' where uid = p_uid;
+  else
+    update club_members set role = p_role where uid = p_uid;
+  end if;
+  return jsonb_build_object('status', 'ok');
+end $$;
+
+-- Chef : changer le nom et/ou le mode d'adhésion.
+create or replace function club_update(p_sid text, p_name text, p_mode text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members;
+begin
+  if p_mode not in ('open', 'request') then raise exception 'bad_mode'; end if;
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found or me.role <> 'leader' then raise exception 'forbidden'; end if;
+  begin
+    update clubs set name = p_name, join_mode = p_mode where id = me.club_id;
+  exception when unique_violation then raise exception 'name_taken';
+  end;
+  if p_mode = 'open' then          -- un club devenu ouvert : les demandes en attente sont acceptées tant qu'il y a de la place
+    insert into club_members (uid, club_id)
+      select r.uid, r.club_id from club_requests r
+      where r.club_id = me.club_id and not exists (select 1 from club_members x where x.uid = r.uid)
+      order by r.created_at
+      limit greatest(0, _setting('club_cap')::int - (select count(*) from club_members where club_id = me.club_id)::int);
+    delete from club_requests r where r.club_id = me.club_id and exists (select 1 from club_members x where x.uid = r.uid);
+    delete from club_requests where club_id = me.club_id;
+    delete from club_requests where uid in (select uid from club_members);
+  end if;
+  return jsonb_build_object('status', 'ok', 'club', _club_state(v_uid));
+end $$;
+
+create or replace function club_disband(p_sid text) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid); me club_members;
+begin
+  perform pg_advisory_xact_lock(hashtext('pom_clubs'));
+  select * into me from club_members where uid = v_uid;
+  if not found or me.role <> 'leader' then raise exception 'forbidden'; end if;
+  delete from clubs where id = me.club_id;
+  return jsonb_build_object('status', 'closed');
+end $$;
+
 -- ---------- Outils administrateur (à lancer dans Supabase > SQL Editor ; JAMAIS appelables depuis le jeu) ----------
 --   select admin_rename_player('AncienPseudo', 'NouveauPseudo');
 --   select admin_block_name('motinterdit');            -- ou admin_block_name('admin', 'exact', 'réservé')
@@ -603,6 +880,34 @@ set search_path = public as $$
 begin delete from blocked_names where lower(word) = lower(btrim(p_word)); return 'ok'; end $$;
 create or replace function admin_blocked_players() returns table (id uuid, name text) language sql stable security definer
 set search_path = public as $$ select id, name from profiles where _name_blocked(name) order by name $$;
+
+-- Clubs (administrateur) :
+--   select admin_block_club_name('motinterdit');   -- ou admin_block_club_name('nom', 'exact', 'réservé')
+--   select admin_unblock_club_name('motinterdit');
+--   select admin_rename_club('AncienNom', 'NouveauNom');
+--   select * from admin_blocked_clubs();            -- clubs dont le nom actuel est interdit
+create or replace function admin_block_club_name(p_word text, p_mode text default 'contains', p_note text default null) returns text
+language plpgsql volatile set search_path = public as $$
+begin
+  if length(_name_norm(p_word)) = 0 then raise exception 'bad_word'; end if;
+  insert into blocked_club_names (word, mode, note) values (btrim(p_word), p_mode, p_note)
+    on conflict (word) do update set mode = excluded.mode, note = coalesce(excluded.note, blocked_club_names.note);
+  return 'ok';
+end $$;
+create or replace function admin_unblock_club_name(p_word text) returns text language plpgsql volatile
+set search_path = public as $$
+begin delete from blocked_club_names where lower(word) = lower(btrim(p_word)); return 'ok'; end $$;
+create or replace function admin_rename_club(p_current text, p_new text) returns jsonb language plpgsql volatile
+set search_path = public as $$
+declare v_id bigint;
+begin
+  select id into v_id from clubs where name_lower = lower(btrim(p_current));
+  if not found then raise exception 'unknown_club'; end if;
+  update clubs set name = p_new where id = v_id;
+  return jsonb_build_object('id', v_id, 'new', (select name from clubs where id = v_id));
+end $$;
+create or replace function admin_blocked_clubs() returns table (id bigint, name text) language sql stable security definer
+set search_path = public as $$ select id, name from clubs where _club_name_blocked(name) order by name $$;
 
 -- Connexion / création du profil. Chaque appel ouvre une NOUVELLE session :
 -- l'ancien appareil connecté au même compte est éjecté à son prochain appel.
