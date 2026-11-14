@@ -122,7 +122,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-top: max(12px, env(safe-area-inset-top, 0px), var(--sat, 0px));
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -188,7 +188,6 @@ button:disabled { cursor: default; }
 .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .tile { min-height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 4px; font-size: 1rem; }
 .tile svg { width: 30px; height: 30px; color: var(--accent); }
-#open-missions { grid-column: 1 / -1; min-height: 64px; flex-direction: row; gap: 10px; }
 
 /* levels */
 .title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; line-height: 1.05; }
@@ -275,17 +274,6 @@ button:disabled { cursor: default; }
 .dd.egg { font-size: 0.7rem; }
 .dtxt { font-size: 0.9rem; color: var(--muted); }
 
-/* missions */
-.mis { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 12px; display: grid; gap: 8px; }
-.mis.done { border-color: var(--up); }
-.mis .mt { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; overflow-wrap: anywhere; }
-.mis .md { color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
-.mis .mrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.mis .mnum { font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; color: var(--muted); }
-.mbar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
-.mbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
-.mis.done .mbar i { background: var(--up); }
-.mlist { display: grid; gap: 10px; }
 /* duels */
 .lobby-code { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; letter-spacing: 0.18em; color: var(--accent); text-align: center; overflow-wrap: anywhere; }
 .dsmall { color: var(--muted); font-size: 0.85rem; text-align: center; }
@@ -294,6 +282,39 @@ button:disabled { cursor: default; }
 .plr .tag { background: var(--yellow); color: var(--yellow-ink); border-radius: 999px; padding: 0 9px; font-size: 0.8rem; font-weight: 600; }
 .plr .nm { overflow-wrap: anywhere; min-width: 0; }
 .plist2 { display: grid; gap: 8px; }
+.fbtn { position: absolute; top: 0; right: 0; z-index: 2; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
+.fbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--line); }
+.fbtn svg { width: 24px; height: 24px; }
+.fbtn.lft { right: auto; left: 0; }
+.fbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); font: 700 0.7rem/18px var(--font-body); text-align: center; }
+#menu { position: relative; }
+.fbtn.second { top: 54px; }
+.tabs.two { grid-template-columns: repeat(2, 1fr); }
+.fwrap { display: grid; gap: 6px; }
+.fwrap > .frow.tap { cursor: pointer; }
+.fmore { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 6px 2px; }
+.fsmall.danger { color: #c0392b; border-color: #f3c3bd; }
+.codebox { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.codebox .dbig { letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+.copybtn { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; box-shadow: 0 2px 0 var(--line); touch-action: manipulation; }
+.dbox > * { min-width: 0; }
+.addrow { display: flex; gap: 8px; min-width: 0; }
+.clinput, .addrow input { flex: 1 1 0; width: 0; min-width: 0; min-height: 54px; border: 3px solid var(--accent); border-radius: 20px; background: var(--surface); color: var(--fg); font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; padding: 8px 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.clinput { width: 100%; flex: none; text-transform: none !important; letter-spacing: 0 !important; }
+.clinput::placeholder, .addrow input::placeholder { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 1rem; }
+.addrow .btn { flex: none; width: auto; padding-inline: 16px; margin-right: 2px; }
+.frow { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 8px 12px; }
+.frow .pet { width: 34px; height: 34px; flex: none; }
+.frow .fname { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frow .fname small { display: block; font-family: var(--font-body); font-weight: 700; font-size: 0.75rem; color: var(--muted); }
+.frow .fact { display: flex; gap: 6px; flex: none; }
+.fsmall { border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; min-height: 34px; padding: 2px 12px; font-family: var(--font-display); font-weight: 500; font-size: 0.85rem; touch-action: manipulation; }
+.fsmall.ok { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.fsmall.quiet { color: var(--muted); }
+.fsec { font-family: var(--font-display); font-weight: 600; font-size: 1rem; margin: 4px 2px 0; }
+.searching { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .searching { animation: none; } }
 .cdnum { font-family: var(--font-display); font-weight: 700; font-size: 8rem; line-height: 1; color: #fff; text-shadow: 0 6px 0 rgba(0, 0, 0, 0.35); }
 .dbig { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.1; }
 .dbox { background: var(--surface); border: 2px solid var(--line); border-radius: 22px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 4px 0 var(--line); }
@@ -377,10 +398,13 @@ button:disabled { cursor: default; }
 @keyframes pop { from { transform: scale(0.8); opacity: 0.3; } to { transform: none; opacity: 1; } }
 .range { display: grid; gap: 6px; }
 .track { position: relative; height: 22px; border-radius: 999px; background: var(--surface); border: 2px solid var(--line); overflow: hidden; }
-.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, width 0.3s ease; }
+.fill { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 3px solid var(--up); border-right: 3px solid var(--down); transition: left 0.3s ease, right 0.3s ease; }
 .pin { position: absolute; top: 4px; width: 8px; height: 8px; margin-left: -4px; margin-top: 1px; background: var(--muted); border-radius: 50%; opacity: 0.7; }
 .pin.secret { background: var(--accent); width: 12px; height: 12px; margin-left: -6px; margin-top: -1px; opacity: 1; }
-.scale { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
+#min-label, #max-label { position: absolute; top: 0; white-space: nowrap; }
+#min-label { left: 7px; transform: translateX(-50%); }
+#max-label { right: 0; padding-right: 2px; }
+.scale { position: relative; display: flex; justify-content: center; padding: 0 2px; min-height: 1.3em; font-family: var(--font-display); font-size: 0.8rem; color: var(--muted); }
 .left { font-size: 0.85rem; color: var(--muted); }
 .left b { color: var(--fg); font-family: var(--font-display); }
 .history { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex: 1 1 34px; min-height: 34px; overflow-y: auto; }
@@ -417,16 +441,78 @@ button:disabled { cursor: default; }
 .toast { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 40; }
 .toast span { background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: 0.92rem; text-align: center; }
 
+.setlist { display: grid; gap: 10px; }
+.setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 8px 14px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; font-weight: 700; cursor: pointer; }
+.setrow small { display: block; font-weight: 600; color: var(--muted); font-size: 0.8rem; }
+.setrow input { width: 26px; height: 26px; accent-color: var(--accent); flex: none; }
+.setrow[hidden] { display: none; }
+a.btn { text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.upd-notes { max-height: 32vh; overflow-y: auto; white-space: pre-wrap; text-align: left; width: 100%; background: var(--bg); border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; font-size: 0.88rem; overflow-wrap: anywhere; }
+#updbox { z-index: 60; }
+.ver { text-align: center; color: var(--muted); font-size: 0.8rem; }
+
+/* casino (Fri-Sun) */
+#open-casino { grid-column: 1 / -1; min-height: 64px; flex-direction: row; gap: 10px; border-color: #e0a800; background: #fff4c2; }
+#open-casino svg { color: #b07a00; }
+.crab-box { display: flex; align-items: flex-start; gap: 10px; }
+.crab-box .crab { width: 64px; flex: none; }
+.crab-box .bubble { flex: 1; min-width: 0; font-size: 0.9rem; }
+.rules { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; font-weight: 600; }
+.rules li { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; }
+.rules li.full { grid-template-columns: 1fr; }
+.rules .sy { display: inline-flex; gap: 1px; }
+.sym { width: 100%; height: 100%; display: block; }
+.mini { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+.machine { background: #8b70e6; border: 3px solid #5a44b5; border-radius: 22px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 5px 0 #5a44b5; }
+.reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.reel { background: #fff; border: 3px solid #5a44b5; border-radius: 14px; aspect-ratio: 1 / 1.05; max-height: 22vh; padding: 10%; display: grid; place-items: center; }
+.reel.spin { animation: rshake 0.16s linear infinite; }
+@keyframes rshake { 50% { transform: translateY(2px); } }
+.betrow { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; align-items: center; }
+.betrow button { min-height: 48px; font-size: 1.5rem; padding: 0; }
+.betrow input { width: 100%; min-height: 48px; text-align: center; font: 700 1.3rem var(--font-display); border: 2px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--fg); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.chips button { width: auto; min-height: 38px; padding: 0 12px; border-radius: 999px; font-size: 0.9rem; flex: 1 1 auto; }
+.cas-msg { text-align: center; font-weight: 800; min-height: 1.4em; color: #fff; overflow-wrap: anywhere; }
+.cas-msg.win { color: #ffe27a; }
+.hist { display: grid; gap: 6px; }
+.hist .hr { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; }
+.hist .hr .net { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
+.hist .hr .net.pos { color: var(--up); } .hist .hr .net.neg { color: var(--danger); }
+.hist .hr small { color: var(--muted); display: block; font-weight: 600; }
+
+/* tutorial: the strawberry guide */
+.tuto-dots { display: flex; gap: 8px; justify-content: center; padding-top: 4px; }
+.tuto-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.tuto-dots i.on { background: var(--accent); }
+.coach-name { text-align: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 1.1rem; }
+.bubble { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 20px; padding: 12px 14px; font-weight: 700; line-height: 1.35; box-shadow: 0 4px 0 var(--line); overflow-wrap: anywhere; }
+#tuto .bubble { text-align: center; font-size: 1.05rem; max-width: 36ch; margin-inline: auto; }
+.coach { display: flex; align-items: center; gap: 8px; }
+.coach .mascot { width: 44px; flex: none; }
+.coach .bubble { flex: 1; min-width: 0; font-size: 0.88rem; padding: 7px 10px; border-radius: 16px; box-shadow: none; }
+
+@media (max-height: 640px) {
+  .coach .mascot { width: 32px; }
+  .coach .bubble { font-size: 0.8rem; padding: 4px 8px; line-height: 1.25; }
+  .coach:not([hidden]) ~ .stats { display: none; }
+  .coach ~ .verdict { min-height: 4.6rem; }
+  .coach ~ .verdict .mascot { width: 48px; }
+  .coach ~ .verdict .word { font-size: clamp(2rem, 11vw, 2.8rem); }
+  .coach:not([hidden]) ~ .verdict .sub { display: none; }
+}
+
 /* small screens: everything must fit without scrolling the page */
 @media (max-height: 780px) {
   .view { gap: 10px; }
+  #tuto .bubble { font-size: 0.98rem; }
+  #open-casino { min-height: 50px; }
   .mascot-wrap { width: min(30vw, 112px); }
   #welcome, #menu { gap: 10px; padding-block: 0; }
   #welcome h1, #menu h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
   .btn { min-height: 52px; font-size: 1.1rem; }
   .tile { min-height: 64px; padding: 6px 4px; gap: 4px; }
   .tile svg { width: 26px; height: 26px; }
-  #open-missions { min-height: 52px; }
   .verdict { min-height: 6rem; }
   .verdict .mascot { width: 64px; }
   .word { font-size: clamp(2.4rem, 13vw, 3.6rem); }
@@ -508,9 +594,32 @@ button:disabled { cursor: default; }
 
     <p class="note" id="welcome-note" aria-live="polite">Connexion en cours...</p>
     <button class="linkbtn" id="w-guest" type="button">Jouer sans compte</button>
+    <button class="linkbtn" id="w-tuto" type="button">Revoir le tutoriel</button>
+  </section>
+
+  <section class="view" id="tuto" hidden>
+    <div class="tuto-dots" id="tuto-dots" aria-hidden="true"></div>
+    <div class="mascot-wrap"><div class="mascot" id="mascot-tuto"></div></div>
+    <p class="coach-name" id="tuto-name"></p>
+    <div class="bubble" id="tuto-text" aria-live="polite"></div>
+    <div class="stack">
+      <button class="btn btn-main" id="tuto-next" type="button"></button>
+    </div>
+    <button class="linkbtn" id="tuto-skip" type="button">Passer le tutoriel</button>
   </section>
 
   <section class="view" id="menu" hidden>
+    <button class="fbtn lft" id="open-settings" type="button" aria-label="Paramètres">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <button class="fbtn" id="open-friends" type="button" aria-label="Amis" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>
+      <span class="fbadge" id="friend-badge" hidden>0</span>
+    </button>
+    <button class="fbtn second" id="open-clubs" type="button" aria-label="Clubs" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8-7 10-4-2-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span class="fbadge" id="club-badge" hidden>0</span>
+    </button>
     <div class="mascot-wrap"><div class="mascot" id="mascot-menu"></div></div>
     <div class="teamrow" id="teamrow"></div>
     <h1><span class="p">Plus</span> ou <span class="m">Moins</span> ?</h1>
@@ -534,16 +643,67 @@ button:disabled { cursor: default; }
       </button>
       <button class="btn btn-soft tile" id="open-duel" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20L16 8M13 5h6v6"/><path d="M20 20L8 8M11 5H5v6"/></svg>
-        Défier un ami
+        Duels
       </button>
-      <button class="btn btn-soft tile" id="open-missions" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>
-        Défis
+      <button class="btn btn-soft tile" id="open-casino" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="12" r="1" fill="currentColor"/></svg>
+        Casino
       </button>
     </div>
-    <button class="linkbtn" id="fs" type="button" hidden>Plein écran</button>
+  </section>
+
+  <section class="view" id="casino" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+      <span class="pill"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fff4c2" stroke="#e0a800" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#e0a800" stroke-width="1.5"/></svg><b class="num" id="cas-coins">0</b></span>
+    </div>
+    <h2 class="title">Casino</h2>
+    <div id="cas-intro">
+      <div class="crab-box">
+        <div class="crab" id="crab-intro" aria-hidden="true"></div>
+        <div class="bubble">Salut, je suis <b>Crabi</b>, le crabe du casino ! Ouvert du vendredi au dimanche. Choisis ta mise, lance les 3 rouleaux :
+          <ul class="rules">
+            <li><span class="sy" data-sy="fraise,fraise,fraise"></span><span>ta mise est <b>doublée</b></span></li>
+            <li><span class="sy" data-sy="oeuf,oeuf,oeuf"></span><span>tu gagnes un <b>œuf cosmique</b>, mais tu perds ta mise</span></li>
+            <li><span class="sy" data-sy="piece,piece,piece"></span><span>tu <b>récupères</b> ta mise</span></li>
+            <li class="full"><span>Toute autre combinaison : mise <b>perdue</b></span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="stack"><button class="btn btn-main" id="cas-ok" type="button">J'ai compris, je joue !</button></div>
+    </div>
+    <div id="cas-machine" hidden>
+      <div class="machine">
+        <div class="reels" id="cas-reels" aria-live="polite"><div class="reel"></div><div class="reel"></div><div class="reel"></div></div>
+        <p class="cas-msg" id="cas-msg" aria-live="polite"></p>
+        <div class="betrow">
+          <button class="btn btn-soft" id="cas-minus" type="button" aria-label="Diminuer la mise">−</button>
+          <input id="cas-bet" type="text" inputmode="numeric" autocomplete="off" aria-label="Mise" value="50">
+          <button class="btn btn-soft" id="cas-plus" type="button" aria-label="Augmenter la mise">+</button>
+        </div>
+        <div class="chips" id="cas-chips"></div>
+        <button class="btn btn-main" id="cas-spin" type="button">Lancer</button>
+      </div>
+      <button class="linkbtn" id="cas-rules" type="button">Revoir les règles</button>
+      <h3 class="sub-title" style="font-family:var(--font-display)">Tes dernières parties</h3>
+      <div class="hist" id="cas-hist"></div>
+    </div>
+  </section>
+
+  <section class="view" id="settings" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title">Paramètres</h2>
+    <div class="setlist">
+      <a class="btn btn-soft" id="set-discord" target="_blank" rel="noopener noreferrer" hidden>Rejoindre le Discord</a>
+      <label class="setrow" for="set-sound"><span>Son et musique<small>Prêt pour la future musique</small></span><input type="checkbox" id="set-sound"></label>
+      <label class="setrow" for="set-friends" id="set-friends-row" hidden><span>Demandes d'amis<small>Décoche pour ne plus en recevoir</small></span><input type="checkbox" id="set-friends"></label>
+    </div>
+    <p class="note" id="set-note" aria-live="polite"></p>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
+    <p class="ver" id="set-ver"></p>
   </section>
 
   <section class="view" id="levels" hidden>
@@ -559,47 +719,111 @@ button:disabled { cursor: default; }
     <div class="top">
       <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
     </div>
-    <h2 class="title">Défier un ami</h2>
-    <p class="lead" style="margin-inline:0">Crée une salle, donne le code à tes amis, puis lance la partie quand ils sont là. Vous cherchez le même nombre : le premier qui le trouve gagne. Les bonus de pets ne comptent pas.</p>
+    <h2 class="title">Duels</h2>
+    <p class="lead" style="margin-inline:0">Un adversaire est trouvé automatiquement. Vous cherchez le même nombre : le premier qui le trouve gagne. Les bonus de pets ne comptent pas.</p>
     <div class="dbox">
-      <b>Créer une salle</b>
+      <b>Niveau</b>
       <div class="tabs" id="duel-lvls" role="group" aria-label="Niveau de la partie"></div>
-      <button class="btn btn-main btn-sm" id="duel-create" type="button">Créer la salle</button>
     </div>
-    <form class="dbox form" id="duel-join-form">
-      <label for="duel-code">Rejoindre la salle d'un ami</label>
-      <input id="duel-code" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code à 6 caractères">
-      <button class="btn btn-main btn-sm" id="duel-join" type="submit">Rejoindre</button>
-    </form>
+    <div class="dbox">
+      <b>Duel occasionnel</b>
+      <span class="dsmall" style="text-align:left">Pour le plaisir : aucun trophée ni aucune pièce en jeu.</span>
+      <button class="btn btn-soft" id="duel-casual" type="button">Jouer</button>
+    </div>
+    <div class="dbox">
+      <b>Duel classé</b>
+      <div class="dbig" id="duel-trophies">0 trophée</div>
+      <span class="dsmall" style="text-align:left" id="duel-record"></span>
+      <span class="dsmall" style="text-align:left">Tu affrontes un joueur avec un nombre de trophées proche du tien. Victoire : tu gagnes des trophées. Défaite ou abandon : tu en perds.</span>
+      <button class="btn btn-main" id="duel-ranked" type="button">Jouer</button>
+    </div>
     <p class="note" id="duel-note" aria-live="polite"></p>
   </section>
 
   <section class="view" id="lobby" hidden>
     <div class="top">
-      <button class="back" type="button" id="lobby-leave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Quitter</button>
+      <button class="back" type="button" id="lobby-leave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Annuler</button>
     </div>
-    <h2 class="title">Salle d'attente</h2>
-    <div class="dbox">
-      <span class="dsmall">Code à donner à tes amis</span>
-      <div class="lobby-code" id="lobby-code">------</div>
-      <button class="btn btn-soft btn-sm" id="lobby-copy" type="button">Copier le code</button>
+    <h2 class="title" id="lobby-title">Recherche d'un adversaire</h2>
+    <div class="dbox" style="text-align:center">
+      <span class="dsmall" id="lobby-mode"></span>
+      <div class="dbig searching" id="lobby-main">Recherche en cours</div>
       <p class="note" id="lobby-level" style="text-align:center"></p>
-    </div>
-    <div class="dbox">
-      <b>Joueurs</b>
-      <div class="plist2" id="lobby-players"></div>
+      <p class="note" id="lobby-wait" style="text-align:center"></p>
     </div>
     <p class="note" id="lobby-note" aria-live="polite"></p>
-    <button class="btn btn-main" id="lobby-start" type="button" disabled>Lancer la partie</button>
   </section>
 
-  <section class="view" id="missions" hidden>
+  <section class="view" id="friends" hidden>
     <div class="top">
       <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
     </div>
-    <h2 class="title">Défis</h2>
-    <p class="note" id="mis-note" aria-live="polite"></p>
-    <div class="mlist" id="mis-list"></div>
+    <h2 class="title">Amis</h2>
+    <div class="dbox">
+      <b>Ton code d'ami</b>
+      <div class="codebox"><div class="dbig" id="fr-code">--------</div><button class="copybtn" id="fr-copy" type="button">Copier</button></div>
+      <span class="dsmall" style="text-align:left">Donne ce code à un ami : il pourra t'envoyer une demande.</span>
+    </div>
+    <form class="dbox" id="fr-form" autocomplete="off">
+      <label for="fr-input"><b>Ajouter un ami</b></label>
+      <div class="addrow">
+        <input id="fr-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="12" placeholder="Code de ton ami">
+        <button class="btn btn-main" id="fr-send" type="submit">Envoyer</button>
+      </div>
+    </form>
+    <p class="note" id="fr-note" aria-live="polite"></p>
+    <div id="fr-in-box" hidden><div class="fsec">Demandes reçues</div><div class="rows" id="fr-in"></div></div>
+    <div id="fr-out-box" hidden><div class="fsec">Demandes envoyées</div><div class="rows" id="fr-out"></div></div>
+    <div><div class="fsec" id="fr-title">Mes amis</div><div class="rows" id="fr-list"></div></div>
+  </section>
+
+  <section class="view" id="club" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title" id="cl-title">Clubs</h2>
+    <p class="note" id="cl-note" aria-live="polite"></p>
+
+    <div id="cl-none" hidden>
+      <form class="dbox" id="cl-create" autocomplete="off">
+        <label for="cl-name"><b>Créer un club</b></label>
+        <input id="cl-name" type="text" class="clinput" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Nom du club (3 à 20 caractères)">
+        <div class="tabs two" id="cl-cmode" role="group" aria-label="Adhésion">
+          <button class="tab" type="button" data-m="open" aria-selected="true">Ouvert</button>
+          <button class="tab" type="button" data-m="request" aria-selected="false">Sur demande</button>
+        </div>
+        <span class="dsmall" style="text-align:left" id="cl-chelp"></span>
+        <button class="btn btn-main" type="submit" id="cl-create-go">Créer le club</button>
+      </form>
+      <form class="dbox" id="cl-searchform" autocomplete="off">
+        <label for="cl-search"><b>Rejoindre un club</b></label>
+        <div class="addrow">
+          <input id="cl-search" type="text" class="clinput" maxlength="20" autocomplete="off" placeholder="Rechercher un nom">
+          <button class="btn btn-soft" type="submit">Chercher</button>
+        </div>
+      </form>
+      <div class="rows" id="cl-list"></div>
+    </div>
+
+    <div id="cl-in" hidden>
+      <div class="dbox">
+        <div class="dbig" id="cl-nameshow"></div>
+        <span class="dsmall" style="text-align:left" id="cl-meta"></span>
+      </div>
+      <div id="cl-req-box" hidden><div class="fsec">Demandes d'adhésion</div><div class="rows" id="cl-req"></div></div>
+      <div><div class="fsec" id="cl-mem-title">Membres</div><div class="rows" id="cl-members"></div></div>
+      <form class="dbox" id="cl-set" autocomplete="off" hidden>
+        <label for="cl-newname"><b>Réglages du club</b></label>
+        <input id="cl-newname" type="text" class="clinput" maxlength="20" autocomplete="off" spellcheck="false">
+        <div class="tabs two" id="cl-smode" role="group" aria-label="Adhésion">
+          <button class="tab" type="button" data-m="open" aria-selected="true">Ouvert</button>
+          <button class="tab" type="button" data-m="request" aria-selected="false">Sur demande</button>
+        </div>
+        <button class="btn btn-soft" type="submit" id="cl-save">Enregistrer</button>
+      </form>
+      <button class="linkbtn" id="cl-leave" type="button">Quitter le club</button>
+      <button class="linkbtn danger" id="cl-disband" type="button" hidden>Dissoudre le club</button>
+    </div>
   </section>
 
   <section class="view" id="board" hidden>
@@ -660,6 +884,11 @@ button:disabled { cursor: default; }
       <div class="pill" id="lvl-pill">Normal</div>
     </div>
 
+    <div class="coach" id="coach" hidden>
+      <div class="mascot" id="mascot-coach"></div>
+      <div class="bubble" id="coach-text" aria-live="polite"></div>
+    </div>
+
     <div class="stats">
       <div class="stat"><small>Essais</small><b id="tries">0</b></div>
       <div class="stat"><small>Temps</small><b id="time">0,0 s</b></div>
@@ -676,7 +905,7 @@ button:disabled { cursor: default; }
     <div class="range">
       <div id="range-box" class="range">
         <div class="track" id="track"><div class="fill" id="fill"></div></div>
-        <div class="scale"><span>1</span><span id="span-label"></span><span id="max-label">100</span></div>
+        <div class="scale"><span id="min-label">1</span><span id="span-label"></span><span id="max-label">100</span></div>
       </div>
       <div class="left" id="left"></div>
     </div>
@@ -689,6 +918,10 @@ button:disabled { cursor: default; }
         <button class="go" id="go" type="button" disabled>Valider</button>
       </div>
       <div class="pad" id="pad"></div>
+    </div>
+
+    <div id="coach-end" hidden>
+      <button class="btn btn-main" id="coach-next" type="button">Suite</button>
     </div>
 
     <div id="result" hidden>
@@ -722,6 +955,17 @@ button:disabled { cursor: default; }
   </div>
 </div>
 
+<div class="hatch" id="updbox" hidden role="dialog" aria-modal="true" aria-labelledby="upd-title">
+  <div class="hatch-box">
+    <b class="dbig" id="upd-title">Mise à jour</b>
+    <p class="dtxt" id="upd-sub"></p>
+    <div class="upd-notes" id="upd-notes" hidden></div>
+    <a class="btn btn-main" id="upd-go" target="_blank" rel="noopener noreferrer" style="width:100%">Mise à jour</a>
+    <a class="btn btn-soft" id="upd-discord" target="_blank" rel="noopener noreferrer" style="width:100%" hidden>Infos sur le Discord</a>
+    <button class="linkbtn" id="upd-later" type="button">Plus tard</button>
+  </div>
+</div>
+
 <div class="hatch" id="dailybox" hidden role="dialog" aria-modal="true" aria-label="Cadeau du jour">
   <div class="hatch-box">
     <b class="dbig" id="daily-title">Cadeau du jour</b>
@@ -738,63 +982,60 @@ button:disabled { cursor: default; }
 
 <div class="toast" id="toast" hidden><span id="toast-text"></span></div>
 
+<script>
+/* Réglages du serveur Supabase (clés publiques, faites pour être dans l'appli). */
+window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb_publishable_q1qivVLQJrtLeE8OsTeZMA_8Kn1BEZr", emailDomain: "plusoumoins.game" };
+</script>
 <script type="module">
 (async function () {
   function done() { window.dispatchEvent(new Event("pmfb")); }
   if (window.pmFb !== undefined) { done(); return; }
   try {
-    var B = "https://www.gstatic.com/firebasejs/10.14.1/";
-    var m = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-auth.js"), import(B + "firebase-firestore.js")]);
-    var App = m[0], Au = m[1], Fs = m[2];
-    var app = App.initializeApp({
-      apiKey: "AIzaSyCAhWl9P-xheEQbCVMq-ua6roJrgDEo4Dc",
-      authDomain: "plus-ou-moin.firebaseapp.com",
-      projectId: "plus-ou-moin",
-      storageBucket: "plus-ou-moin.firebasestorage.app",
-      messagingSenderId: "7822309667",
-      appId: "1:7822309667:web:c3148a5b9158de72617496"
-    });
-    var auth = Au.getAuth(app), fs = Fs.getFirestore(app), unsubs = [];
-    function wrapDoc(sn) { return { id: sn.id, exists: sn.exists(), metadata: sn.metadata, data: function () { return sn.data(); } }; }
-    function wrapQ(sn) { return { empty: sn.empty, metadata: sn.metadata, docs: sn.docs.map(function (d) { return { id: d.id, data: function () { return d.data(); } }; }) }; }
-    function docApi(path) {
-      var ref = Fs.doc(fs, path);
-      return {
-        get: function () { return Fs.getDoc(ref).then(wrapDoc); },
-        set: function (d) { return Fs.setDoc(ref, d); },
-        update: function (d) { return Fs.setDoc(ref, d, { merge: true }); },
-        delete: function () { return Fs.deleteDoc(ref); },
-        onSnapshot: function (ok, err) { return Fs.onSnapshot(ref, function (sn) { ok(wrapDoc(sn)); }, err); }
-      };
-    }
-    function colApi(name, cons) {
-      cons = cons || [];
-      function q() { return Fs.query.apply(null, [Fs.collection(fs, name)].concat(cons)); }
-      return {
-        where: function (f, op, v) { return colApi(name, cons.concat([Fs.where(f, op, v)])); },
-        orderBy: function (f, dir) { return colApi(name, cons.concat([Fs.orderBy(f, dir)])); },
-        limit: function (n) { return colApi(name, cons.concat([Fs.limit(n)])); },
-        get: function () { return Fs.getDocs(q()).then(wrapQ); },
-        onSnapshot: function (ok, err, keep) {
-          var u = Fs.onSnapshot(q(), function (sn) { ok(wrapQ(sn)); }, err);
-          if (!keep) unsubs.push(u);
-          return u;
-        }
-      };
+    var cfg = window.PM_SUPABASE || {};
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(cfg.url || "") || /VOTRE/.test((cfg.url || "") + (cfg.key || ""))) throw new Error("not configured");
+    var m = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+    var sb = m.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    function authErr(e) {
+      var c = (e && e.code) || "", msg = ((e && e.message) || "").toLowerCase(), st = e && e.status;
+      if (c === "user_already_exists" || /already registered/.test(msg)) return { code: "auth/email-already-in-use" };
+      if (c === "invalid_credentials" || /invalid login/.test(msg)) return { code: "auth/invalid-credential" };
+      if (c === "over_request_rate_limit" || st === 429 || /rate limit/.test(msg)) return { code: "auth/too-many-requests" };
+      if (c === "email_address_invalid") return { code: "auth/email-invalid" };
+      if (/fetch|network/.test(msg) || (e && e.name === "AuthRetryableFetchError")) return { code: "auth/network-request-failed" };
+      return { code: "auth/other", message: msg };
     }
     window.pmFb = {
-      db: {
-        doc: docApi,
-        collection: colApi,
-        stopAll: function () { unsubs.forEach(function (u) { try { u(); } catch (e) {} }); unsubs = []; }
+      emailDomain: cfg.emailDomain || "plusoumoins.game",
+      rpc: async function (name, args) {
+        var r;
+        try { r = await sb.rpc(name, args || {}); }
+        catch (e) { var ne = new Error("network"); ne.code = "network"; throw ne; }
+        if (r.error) {
+          var msg = (r.error.message || "").trim(), er = new Error(msg || "rpc");
+          er.code = /^[a-z_]+$/.test(msg) ? msg : (/jwt|token|apikey/i.test(msg) ? "not_authenticated" : "network");
+          throw er;
+        }
+        return r.data;
       },
       auth: {
-        ready: function () { return auth.authStateReady().then(function () { return auth.currentUser; }); },
-        signUp: function (e, p) { return Au.createUserWithEmailAndPassword(auth, e, p).then(function (c) { return c.user; }); },
-        signIn: function (e, p) { return Au.signInWithEmailAndPassword(auth, e, p).then(function (c) { return c.user; }); },
-        signOut: function () { return Au.signOut(auth); },
-        reauth: function (p) { return Au.reauthenticateWithCredential(auth.currentUser, Au.EmailAuthProvider.credential(auth.currentUser.email, p)); },
-        deleteUser: function () { return Au.deleteUser(auth.currentUser); }
+        ready: async function () { var r = await sb.auth.getSession(); return r.data && r.data.session ? r.data.session.user : null; },
+        signUp: async function (e, p) {
+          var r = await sb.auth.signUp({ email: e, password: p });
+          if (r.error) throw authErr(r.error);
+          if (!r.data.session) throw { code: "auth/confirm-required" };
+          return r.data.user;
+        },
+        signIn: async function (e, p) {
+          var r = await sb.auth.signInWithPassword({ email: e, password: p });
+          if (r.error) throw authErr(r.error);
+          return r.data.user;
+        },
+        signOut: function () { return sb.auth.signOut(); },
+        reauth: async function (p) {
+          var u = (await sb.auth.getUser()).data.user;
+          var r = await sb.auth.signInWithPassword({ email: u.email, password: p });
+          if (r.error) throw authErr(r.error);
+        }
       }
     };
   } catch (e) {
@@ -805,7 +1046,7 @@ button:disabled { cursor: default; }
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "friends", "club", "tuto", "settings", "casino"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -844,6 +1085,7 @@ button:disabled { cursor: default; }
     { id: "rainbow", pct: 50, name: "Arc-en-ciel", r: 4, kind: "score", color: "#ffffff" }
   ];
   var SPETS = PETS.map(function (q) { var o = {}; for (var k in q) o[k] = q[k]; o.id = q.id + "_s"; o.base = q.id; o.shiny = true; o.pct = Math.round(q.pct * 1.5); return o; });
+  var SHINY_SELL = 4;
   var SHINY_CHANCE = 3;          // percent per egg
   var DAILY = [{ coins: 15 }, { coins: 20 }, { coins: 25 }, { coins: 35 }, { coins: 45 }, { coins: 60 }, { egg: "etoile" }];
   var EGGS = [
@@ -863,8 +1105,8 @@ button:disabled { cursor: default; }
 
   var $ = function (id) { return document.getElementById(id); };
   var s = { phase: "welcome", L: LVLS[1], lvl: "normal", secret: 0, low: 1, high: 100, guesses: [], entry: "", t0: 0, timer: null, elapsed: 0, fails: 0 };
-  var ctx = { db: null, uid: null, canWrite: null, ready: false, slow: false, existing: null };
-  var FB = null, boardStarted = false;
+  var ctx = { db: null, uid: null, sid: null, ready: false, slow: false };
+  var FB = null;
   var mode = "none";            // "none" | "account" | "guest"
   var me = null;
   var boards = {}, boardErrs = {}, boardSlows = {}, boardLvl = "normal";
@@ -885,7 +1127,7 @@ button:disabled { cursor: default; }
     for (i = 0; i < SPETS.length; i++) if (SPETS[i].id === id) return SPETS[i];
     return null;
   }
-  function sellValue(p) { return rarOf(p).sell * (p.shiny ? 4 : 1); }
+  function sellValue(p) { return rarOf(p).sell * (p.shiny ? SHINY_SELL : 1); }
   function eggById(id) { for (var i = 0; i < EGGS.length; i++) if (EGGS[i].id === id) return EGGS[i]; return null; }
   function lvlById(id) { for (var i = 0; i < LVLS.length; i++) if (LVLS[i].id === id) return LVLS[i]; return null; }
   function rarOf(p) { return RAR[p.r]; }
@@ -898,7 +1140,7 @@ button:disabled { cursor: default; }
   }
   function bonusText(p) { var v = p.pct; return "+" + v + " % " + (p.kind === "coin" ? "pièces" : "points"); }
 
-  function blank() { return { name: "", best: 0, bestLvl: "", bests: { easy: 0, normal: 0, hard: 0, nightmare: 0 }, games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, daily: { day: "", streak: 0 }, duels: [], mp: {}, mc: {} }; }
+  function blank() { return { name: "", best: 0, bestLvl: "", bests: { easy: 0, normal: 0, hard: 0, nightmare: 0 }, games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, trophies: 0, duelWins: 0, duelLosses: 0, daily: { day: "", streak: 0 }, }; }
   function normalize(d) {
     var b = blank();
     if (!d) return b;
@@ -912,13 +1154,14 @@ button:disabled { cursor: default; }
     b.games = Math.max(0, +d.games || 0);
     b.coins = Math.max(0, Math.floor(+d.coins || 0));
     b.hatched = Math.max(0, Math.floor(+d.hatched || 0));
-    ["mp", "mc"].forEach(function (f) {
-      var src = d[f];
-      if (src && typeof src === "object") for (var kk in src) if (Object.prototype.hasOwnProperty.call(src, kk) && /^[\w-]{1,40}$/.test(kk) && src[kk]) b[f][kk] = f === "mc" ? true : (+src[kk] || 1);
-    });
     var dd = d.daily && typeof d.daily === "object" ? d.daily : {};
     b.daily = { day: typeof dd.day === "string" ? dd.day : "", streak: Math.max(0, Math.floor(+dd.streak || 0)) };
-    b.duels = Array.isArray(d.duels) ? d.duels.filter(function (c) { return typeof c === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(c); }).slice(0, 8) : [];
+    b.friendReq = d.friendReq !== false;
+    b.casino = !!d.casino;
+    b.friendCode = typeof d.friendCode === "string" && /^[A-Z0-9]{8}$/.test(d.friendCode) ? d.friendCode : "";
+    b.trophies = Math.max(0, Math.floor(+d.trophies || 0));
+    b.duelWins = Math.max(0, Math.floor(+d.duelWins || 0));
+    b.duelLosses = Math.max(0, Math.floor(+d.duelLosses || 0));
     if (d.inv && typeof d.inv === "object") {
       for (var k in d.inv) if (Object.prototype.hasOwnProperty.call(d.inv, k) && petById(k)) {
         var c = Math.floor(+d.inv[k] || 0);
@@ -960,21 +1203,20 @@ button:disabled { cursor: default; }
   }
 
   /* ---------- saving ---------- */
-  function playerPath() { return "players/" + ctx.uid; }
-    function persist(patch) {
+  function persist(patch) {
     for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) me[k] = patch[k];
-    if (mode === "guest") {
-      lsSet("pm2.guest", JSON.stringify(me));
-    } else if (mode === "account" && ctx.db && ctx.uid) {
-      var copy = JSON.parse(JSON.stringify(patch));
-      writeChain = writeChain.then(function () {
-        return ctx.db.doc(playerPath()).update(copy);
-      }).catch(function () {
-        toast("Sauvegarde impossible pour le moment.");
-      });
-    }
+    if (mode === "guest") lsSet("pm2.guest", JSON.stringify(me));   // account data lives on the server only
   }
-  function setTeam(arr) { persist({ team: arr, pet: arr[0] || "" }); }
+  function setTeam(arr) {
+    if (mode !== "account") { persist({ team: arr, pet: arr[0] || "" }); return; }
+    var prev = me.team.slice();
+    me.team = arr.slice(); me.pet = arr[0] || "";
+    srv("set_team", { p_team: arr }).then(applyProfile).catch(function () {
+      me.team = prev; me.pet = prev[0] || "";
+      toast("Impossible de changer l'équipe pour le moment.");
+      if (s.phase === "inv") renderInv();
+    });
+  }
 
   /* ---------- passwords ---------- */
   function hex(a) { var o = ""; for (var i = 0; i < a.length; i++) o += (a[i] < 16 ? "0" : "") + a[i].toString(16); return o; }
@@ -1036,8 +1278,20 @@ button:disabled { cursor: default; }
     return "bad";
   }
   function fbPw(pw) { return pw + "~PoM"; }
-  function pseudoKey(name) { return String(name || "").replace(/\s+/g, " ").trim().toLowerCase(); }
-  function pseudoEmail(name) { var k = pseudoKey(name); return "p" + cyrb(k, 11) + cyrb(k, 22) + cyrb(k, 33) + "@plusoumoins.game"; }
+  /* The login identifier (a hidden e-mail) is permanent and no longer derived from the pseudo:
+     the server finds it from the pseudo (resolve_login), so an admin can rename a player without breaking anything. */
+  function randomLoginEmail() {
+    var a = new Uint8Array(16), h = "";
+    try { (window.crypto || window.msCrypto).getRandomValues(a); } catch (e) { for (var i = 0; i < 16; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (var j = 0; j < a.length; j++) h += (a[j] < 16 ? "0" : "") + a[j].toString(16);
+    return "u" + h + "@" + ((FB && FB.emailDomain) || "plusoumoins.game");
+  }
+  function nameMsg(code) {
+    if (code === "name_taken") return "Ce pseudo est déjà pris. Essaie-en un autre.";
+    if (code === "forbidden_name") return "Ce pseudo n'est pas autorisé. Choisis-en un autre.";
+    if (code === "bad_name") return "Ton pseudo doit faire entre 2 et 14 caractères : lettres, chiffres, espace, _ . ' ou -.";
+    return "";
+  }
   async function verifyPw(pw) {
     if (lockLeft() > 0) return "locked";
     if (!pw) return "empty";
@@ -1265,7 +1519,7 @@ button:disabled { cursor: default; }
 
   /* ---------- navigation ---------- */
   function show(view) {
-    if (duelCur && view !== "game" && view !== "lobby") leaveDuel();
+    if ((duelCur || searchCur) && view !== "game" && view !== "lobby") leaveDuel();
     VIEWS.forEach(function (v) { $(v).hidden = v !== view; });
     window.scrollTo(0, 0);
   }
@@ -1296,13 +1550,17 @@ button:disabled { cursor: default; }
     $("coins").textContent = fmtInt(me.coins);
     $("logout").textContent = mode === "guest" ? "Créer un compte" : "Se déconnecter";
     $("open-del").textContent = mode === "guest" ? "Effacer mes données" : "Supprimer mon compte";
+    $("open-friends").hidden = mode !== "account";
+    $("open-clubs").hidden = mode !== "account";
+    renderCasinoBtn();
+    if (mode === "account") { refreshFriends(true); refreshClub(true); }
     show("menu");
     if (!dailyChecked) { dailyChecked = true; if (!dailyInfo().claimed) openDaily(); }
   }
   function goLevels() { stopTimer(); s.phase = "levels"; renderLevels(); show("levels"); }
-  function goBoard() { stopTimer(); s.phase = "board"; renderBoard(); show("board"); }
-  function goShop() { stopTimer(); s.phase = "shop"; renderShop(); show("shop"); }
-  function goInv() { stopTimer(); s.phase = "inv"; renderInv(); show("inv"); }
+  function goBoard() { stopTimer(); s.phase = "board"; loadBoard(boardLvl); renderBoard(); show("board"); }
+  function goShop() { stopTimer(); s.phase = "shop"; loadConfig(); renderShop(); show("shop"); }
+  function goInv() { stopTimer(); s.phase = "inv"; loadConfig(); renderInv(); show("inv"); }
   function goDel() {
     stopTimer();
     s.phase = "del";
@@ -1322,7 +1580,7 @@ button:disabled { cursor: default; }
     n.textContent = text;
     n.classList.toggle("warn", !!warn);
   }
-  function accountsAvailable() { return !!(ctx.db && !ctx.slow); }
+  function accountsAvailable() { return !!(FB && !ctx.slow); }
   function showForm(name) {
     ["signup", "login", "setpw"].forEach(function (f) { $(f).hidden = f !== name; });
     $("welcome-actions").hidden = !!name;
@@ -1338,47 +1596,54 @@ button:disabled { cursor: default; }
     }
     setNote("");
   }
-  function loginAccount(data) {
-    mode = "account";
-    dailyChecked = false;
-    me = normalize(data);
-    if (me.bestLvl && me.bests[me.bestLvl] > 0 && !(+(data && data["b_" + me.bestLvl]) > 0)) {
-      var mig = {}; mig["b_" + me.bestLvl] = me.bests[me.bestLvl];
-      persist(mig);
-    }
-    if (!boardStarted) { boardStarted = true; startBoard(); }
-    startSession();
-    goMenu();
+  /* ---------- server calls + one device per account ---------- */
+  function srv(name, args) {
+    args = args || {};
+    args.p_sid = ctx.sid;
+    return FB.rpc(name, args).catch(function (e) {
+      if (e && mode === "account" && (e.code === "session_replaced" || e.code === "not_authenticated" || e.code === "no_profile")) kickedOut(e.code);
+      throw e;
+    });
+  }
+  function applyProfile(p) {
+    if (!p || mode !== "account") return;
+    me = normalize(p);
+    me.today = typeof p.today === "string" ? p.today : "";
+    if (s.phase === "menu") $("coins").textContent = fmtInt(me.coins);
+  }
+  var sessTimer = null, casinoTimer = null;
+  var friendTimer = null, friendsData = null, frBusy = false, clubData = null, clBusy = false, clList = [], clSrvName = null, clSrvMode = null, clQuery = "", clMode = "open", clSet = "open", clOpenUid = null;
+  function stopSession() { clearInterval(casinoTimer); casinoTimer = null; clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; clubData = null; ctx.sid = null; }
+  function checkSession() { if (mode === "account" && ctx.sid && !document.hidden) srv("check_session").catch(function () {}); }
+  function startSessionWatch() {
+    clearInterval(sessTimer);
+    sessTimer = setInterval(checkSession, 15000);
+    clearInterval(casinoTimer); casinoTimer = setInterval(pollCasino, 60000);
+    clearInterval(friendTimer);
+    friendTimer = setInterval(function () { if (!document.hidden && (s.phase === "menu" || s.phase === "friends" || s.phase === "club")) { refreshFriends(true); refreshClub(true); } }, 30000);
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { checkSession(); if (duelCur && !duelCur.ended) pollDuel(); } });
+  function kickedOut(code) {
+    stopSession();
+    mode = "none"; me = null;           // no more server calls from this device
+    stopSearch(); clearInterval(duelPoll); duelCur = null; clearCd();
+    goWelcome();
+    try { FB.auth.signOut(); } catch (e) {}
+    ctx.uid = null; boards = {};
+    setNote(code === "session_replaced" ? "Ton compte vient d'être ouvert sur un autre appareil. Tu as été déconnecté ici." : "Ta session a expiré. Reconnecte-toi.", true);
   }
 
-  /* ---------- one device per account: the newest login ejects the older one ---------- */
-  var sessUnsub = null;
-  function stopSession() {
-    if (sessUnsub) { try { sessUnsub(); } catch (e) {} sessUnsub = null; }
-    ctx.sid = null;
-  }
-  function startSession() {
-    stopSession();
-    if (!ctx.db || !ctx.uid) return;
-    var mySid = makeSalt(), ref = ctx.db.doc(playerPath());
-    ctx.sid = mySid;
-    ref.update({ sid: mySid, sidAt: Date.now() }).then(function () {
-      if (ctx.sid !== mySid || mode !== "account") return;
-      sessUnsub = ref.onSnapshot(function (sn) {
-        if (ctx.sid !== mySid || mode !== "account" || !sn.exists) return;
-        var d = sn.data() || {};
-        if (d.sid && d.sid !== mySid) kickedOut();
-      }, function () {});
-    }, function () {});
-  }
-  function kickedOut() {
-    stopSession();
-    lsDel("pm2.session");
-    mode = "none"; me = null;           // no more writes from this device
-    goWelcome();
-    try { FB.db.stopAll(); FB.auth.signOut(); } catch (e) {}
-    ctx.uid = null; ctx.existing = null; boardStarted = false; boards = {}; boardErrs = {};
-    setNote("Ton compte vient d'être ouvert sur un autre appareil. Tu as été déconnecté ici.", true);
+  function loginAccount(res) {
+    mode = "account";
+    dailyChecked = false;
+    ctx.sid = res.sid;
+    me = normalize(res.profile);
+    me.today = typeof res.profile.today === "string" ? res.profile.today : "";
+    startSessionWatch();
+    boards = {};
+    if (res.profile.tutoDone === false) { startTuto(false); return; }     // server asks for the tutorial (tuto_done = false)
+    lsSet("pm2.tuto", "1");
+    goMenu();
   }
 
   async function onCreate(e) {
@@ -1392,22 +1657,38 @@ button:disabled { cursor: default; }
     if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
     $("signup-go").disabled = true;
     try {
+      // the server checks the pseudo (format, forbidden words, already taken) before any account is created
+      var chk;
+      try { chk = await FB.rpc("check_name", { p_name: name }); }
+      catch (err0) { setNote("Pas de connexion au serveur. Réessaie dans un instant.", true); return; }
+      if (chk !== "ok") { setNote(nameMsg(chk) || nameMsg("bad_name"), true); return; }
       var user;
-      try { user = await FB.auth.signUp(pseudoEmail(name), fbPw(pw)); }
+      try { user = await FB.auth.signUp(randomLoginEmail(), fbPw(pw)); }
       catch (err) {
-        if (err && err.code === "auth/email-already-in-use") setNote("Ce pseudo est déjà pris. Essaie-en un autre.", true);
-        else if (err && err.code === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
+        var c0 = err && err.code;
+        if (c0 === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
+        else if (c0 === "auth/too-many-requests") setNote("Trop d'essais. Réessaie dans quelques minutes.", true);
+        else if (c0 === "auth/email-invalid" || c0 === "auth/confirm-required") setNote("Le serveur refuse la création de compte (réglage du serveur à vérifier : " + c0 + ").", true);
         else setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
         return;
       }
-      ctx.uid = user.uid; ctx.canWrite = true;
-      var data = { name: name, nameLower: pseudoKey(name), best: 0, bestLvl: "", games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, created: Date.now() };
-      await ctx.db.doc(playerPath()).set(data);
-      ctx.existing = data;
+      ctx.uid = user.id;
+      var res = await FB.rpc("login_session", { p_name: name });
       $("su-pw").value = ""; $("su-pw2").value = "";
-      loginAccount(data);
+      loginAccount(res);
     } catch (err) {
-      setNote("Le compte est créé mais le profil n'a pas pu être enregistré. Connecte-toi pour réessayer.", true);
+      var nm = err && nameMsg(err.code);
+      if (nm) {                                   // refused at the last moment (taken meanwhile, or a bypassed check): drop the empty account
+        try { await FB.rpc("cancel_signup", {}); } catch (e2) {}
+        try { await FB.auth.signOut(); } catch (e3) {}
+        ctx.uid = null;
+        setNote(nm, true);
+      } else {
+        try { await FB.rpc("cancel_signup", {}); } catch (e2) {}
+        try { await FB.auth.signOut(); } catch (e3) {}
+        ctx.uid = null;
+        setNote("Impossible de créer le compte pour le moment. Réessaie dans un instant.", true);
+      }
     } finally {
       $("signup-go").disabled = false;
     }
@@ -1421,41 +1702,32 @@ button:disabled { cursor: default; }
     if (!FB) { setNote("Impossible de joindre le serveur.", true); return; }
     $("login-go").disabled = true;
     try {
-      var user;
-      try { user = await FB.auth.signIn(pseudoEmail(name), fbPw(pw)); }
+      var user, loginEmail = null;
+      try { loginEmail = await FB.rpc("resolve_login", { p_name: name }); }
+      catch (err1) { setNote("Pas de connexion au serveur. Réessaie dans un instant.", true); return; }
+      // unknown pseudo (or an old pseudo after a rename): try a dummy identifier so the answer looks like a wrong password
+      if (!loginEmail) loginEmail = randomLoginEmail();
+      try { user = await FB.auth.signIn(loginEmail, fbPw(pw)); }
       catch (err) {
         var c = err && err.code;
         if (c === "auth/network-request-failed") setNote("Pas de connexion à Internet.", true);
         else if (c === "auth/too-many-requests") { lsSet("pm2.lock", String(Date.now() + 30000)); setNote(pwMsg("locked"), true); }
-        else if (c === "auth/invalid-credential" || c === "auth/user-not-found" || c === "auth/wrong-password") {
+        else if (c === "auth/invalid-credential") {
           var r = failPw();
           setNote(r === "locked" ? pwMsg("locked") : "Pseudo ou mot de passe incorrect.", true);
         } else setNote("Impossible de se connecter pour le moment. Réessaie dans un instant.", true);
         return;
       }
       s.fails = 0;
-      ctx.uid = user.uid; ctx.canWrite = true;
-      var d = await freshPlayer();
-      if (!d) {
-        d = { name: name, nameLower: pseudoKey(name), best: 0, bestLvl: "", games: 0, coins: 0, inv: {}, team: [], pet: "", hatched: 0, created: Date.now() };
-        await ctx.db.doc(playerPath()).set(d);
-        ctx.existing = d;
-      }
+      ctx.uid = user.id;
+      var res = await FB.rpc("login_session", { p_name: name });
       $("li-pw").value = "";
-      loginAccount(d);
+      loginAccount(res);
     } catch (err) {
       setNote("Impossible de charger ton profil pour le moment.", true);
     } finally {
       $("login-go").disabled = false;
     }
-  }
-
-  async function freshPlayer() {
-    try {
-      var ps = await ctx.db.doc(playerPath()).get();
-      if (ps.exists) { ctx.existing = ps.data(); return ctx.existing; }
-    } catch (err) {}
-    return null;
   }
   function onSetPw(e) { e.preventDefault(); }
 
@@ -1465,14 +1737,14 @@ button:disabled { cursor: default; }
     var raw = lsGet("pm2.guest"), d = null;
     try { d = raw ? JSON.parse(raw) : null; } catch (e) {}
     me = normalize(d);
+    me.today = dayKey(new Date());
     goMenu();
   }
   function logout() {
     if (mode === "account") {
       stopSession();
-      lsDel("pm2.session");
-      try { FB.db.stopAll(); FB.auth.signOut(); } catch (e) {}
-      ctx.uid = null; ctx.existing = null; boardStarted = false; boards = {}; boardErrs = {};
+      try { FB.auth.signOut(); } catch (e) {}
+      ctx.uid = null; boards = {};
     }
     mode = "none";
     me = null;
@@ -1499,12 +1771,11 @@ button:disabled { cursor: default; }
         $("del-note").classList.add("warn");
         return;
       }
+      try { await srv("delete_account"); }
+      catch (err) { $("del-note").textContent = "La suppression a échoué. Réessaie dans un instant."; $("del-note").classList.add("warn"); return; }
       stopSession();
-      try { await ctx.db.doc(playerPath()).delete(); }
-      catch (err) { startSession(); $("del-note").textContent = "La suppression a échoué. Réessaie dans un instant."; $("del-note").classList.add("warn"); return; }
-      try { FB.db.stopAll(); await FB.auth.deleteUser(); } catch (err) { try { FB.auth.signOut(); } catch (e2) {} }
-      ctx.existing = null; ctx.uid = null; boardStarted = false; boards = {}; boardErrs = {};
-      lsDel("pm2.session");
+      try { FB.auth.signOut(); } catch (err) {}
+      ctx.uid = null; boards = {};
       mode = "none"; me = null;
       goWelcome();
       setNote("Ton compte est supprimé. Tu peux en créer un nouveau.");
@@ -1515,24 +1786,18 @@ button:disabled { cursor: default; }
   }
 
   /* ---------- ranking (one board per level) ---------- */
-  function startBoard() {
-    LVLS.forEach(function (L) {
-      var timer = setTimeout(function () { boardSlows[L.id] = true; if (s.phase === "board") renderBoard(); }, 10000);
-      try {
-        ctx.db.collection("players").orderBy("b_" + L.id, "desc").limit(50).onSnapshot(function (snap) {
-          if (!snap.metadata.fromCache) { clearTimeout(timer); boardSlows[L.id] = false; }
-          boards[L.id] = snap.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; });
-          boardErrs[L.id] = null;
-          if (s.phase === "board") renderBoard();
-        }, function (e) {
-          clearTimeout(timer);
-          boardErrs[L.id] = (e && e.code) || "error";
-          if (s.phase === "board") renderBoard();
-        });
-      } catch (e) {
-        clearTimeout(timer);
-        boardErrs[L.id] = "error";
-      }
+  var boardAt = {};
+  function loadBoard(id) {
+    if (mode !== "account" || !FB) return;
+    id = lvlById(id) ? id : "normal";
+    if (boards[id] && Date.now() - (boardAt[id] || 0) < 20000) return;
+    boardAt[id] = Date.now();
+    srv("get_board", { p_lvl: id }).then(function (list) {
+      boards[id] = list; boardErrs[id] = null; boardSlows[id] = false;
+      if (s.phase === "board") renderBoard();
+    }).catch(function () {
+      boardErrs[id] = "error"; boardAt[id] = 0;
+      if (s.phase === "board") renderBoard();
     });
   }
   function renderBoard() {
@@ -1550,12 +1815,12 @@ button:disabled { cursor: default; }
     var rows = $("rows"), note = $("board-note");
     rows.innerHTML = "";
     note.textContent = "";
-    if (!ctx.db) { note.textContent = "Le classement n'est pas disponible ici."; return; }
+    if (!FB) { note.textContent = "Le classement n'est pas disponible ici."; return; }
     if (mode !== "account") { note.textContent = "Connecte-toi avec un compte pour voir le classement."; return; }
     if (boardErrs[id]) { note.textContent = "Le classement est inaccessible pour le moment."; return; }
     var docs = boards[id];
     if (!docs) { note.textContent = boardSlows[id] ? "Chargement... la connexion semble lente." : "Chargement..."; return; }
-    var list = docs.filter(function (d) { return (+d[key] || 0) > 0; });
+    var list = docs;
     if (boardSlows[id]) note.textContent = "Ces scores peuvent ne pas être à jour.";
     if (!list.length) {
       var empty = document.createElement("div");
@@ -1567,7 +1832,7 @@ button:disabled { cursor: default; }
     var mine = false;
     list.forEach(function (d, i) {
       var row = document.createElement("div");
-      var isMe = mode === "account" && d.id === ctx.uid;
+      var isMe = mode === "account" && !!d.me;
       if (isMe) mine = true;
       row.className = "row" + (isMe ? " me" : "");
       var rank = document.createElement("div");
@@ -1581,7 +1846,7 @@ button:disabled { cursor: default; }
       name.textContent = (typeof d.name === "string" && d.name) ? d.name : "Joueur";
       var pts = document.createElement("div");
       pts.className = "pts";
-      pts.textContent = fmtInt(+d[key] || 0);
+      pts.textContent = fmtInt(+d.score || 0);
       row.appendChild(rank); row.appendChild(pet); row.appendChild(name); row.appendChild(pts);
       rows.appendChild(row);
     });
@@ -1709,6 +1974,20 @@ button:disabled { cursor: default; }
     var egg = eggById(eid);
     if (!egg || hatchBusy) return;
     if (!free && me.coins < egg.price) { toast("Pas assez de pièces."); return; }
+    if (mode === "account") {
+      hatchBusy = true;
+      srv("open_egg", { p_egg: egg.id }).then(function (r) {
+        hatchBusy = false;
+        applyProfile(r.profile);
+        if (s.phase === "shop") renderShop();
+        var pt = petById(r.pet);
+        if (pt) playHatch(egg, pt, r.count);
+      }).catch(function (e) {
+        hatchBusy = false;
+        toast(e && e.code === "not_enough_coins" ? "Pas assez de pièces." : "Impossible d'ouvrir l'œuf pour le moment.");
+      });
+      return;
+    }
     var pet = rollEgg(egg);
     if (Math.random() * 100 < SHINY_CHANCE) pet = petById(pet.id + "_s") || pet;
     var inv = cloneInv(me.inv);
@@ -1928,6 +2207,7 @@ button:disabled { cursor: default; }
     renderInv();
   }
 
+  var sellBusy = false;
   function onInvClick(e) {
     var b = e.target.closest("button");
     if (!b || !b.dataset.act) return;
@@ -1941,6 +2221,17 @@ button:disabled { cursor: default; }
     } else if (act === "sell") {
       var n = me.inv[p.id] || 0;
       if (n < 2 || n - teamCount(p.id, -1) < 1) return;
+      if (mode === "account") {
+        if (sellBusy) return;
+        sellBusy = true;
+        srv("sell_dup", { p_pet: p.id }).then(function (r) {
+          sellBusy = false;
+          applyProfile(r.profile);
+          toast("Doublon échangé : +" + fmtInt(r.gain) + " pièces");
+          if (s.phase === "inv") renderInv();
+        }).catch(function () { sellBusy = false; toast("Impossible d'échanger pour le moment."); });
+        return;
+      }
       var inv = cloneInv(me.inv); inv[p.id] = n - 1;
       var gain = sellValue(p);
       persist({ inv: inv, coins: me.coins + gain });
@@ -2006,18 +2297,33 @@ button:disabled { cursor: default; }
   }
   function introText(L) { return L.max === Infinity ? "Entre un nombre. Il n'y a aucune limite." : "Entre un nombre entre 1 et " + fmtInt(L.max) + "."; }
 
-  function startGame(id, duel) {
+  function secretVal(v) { return s.L.max === Infinity ? BigInt(v) : Number(v); }
+  async function startGame(id, duel) {
     var L = lvlById(id) || s.L || LVLS[1];
+    if (s.starting) return;
+    var gid = null;
+    if (mode === "account") {
+      if (duel && duel.gid) gid = duel.gid;
+      else {
+        s.starting = true;
+        try { gid = (await srv("start_game", { p_lvl: L.id })).gid; }
+        catch (e) { toast("Impossible de lancer la partie. Vérifie ta connexion."); return; }
+        finally { s.starting = false; }
+        if (mode !== "account") return;
+      }
+    }
+    s.tg = false; $("coach").hidden = true; $("coach-end").hidden = true;
+    s.gid = gid; s.busy = false;
     s.L = L; s.lvl = L.id; boardLvl = L.id; s.duel = duel || null; s.duelEnded = false;
-    var rf = duel ? seeded(duel.seed) : Math.random;
-    s.secret = L.max === Infinity ? BigInt(Math.max(1, Math.floor(Math.pow(10, 2 + rf() * 7)))) : 1 + Math.floor(rf() * L.max);
+    // account games: the secret number lives on the server only
+    s.secret = mode === "account" ? null : (L.max === Infinity ? BigInt(Math.max(1, Math.floor(Math.pow(10, 2 + Math.random() * 7)))) : 1 + Math.floor(Math.random() * L.max));
     s.low = L.max === Infinity ? 1n : 1; s.high = L.max; s.guesses = []; s.entry = "";
     s.phase = "playing";
     s.t0 = performance.now(); s.elapsed = 0;
     stopTimer();
     s.timer = setInterval(tick, 100);
     show("game");
-    $("lvl-pill").textContent = (duel ? "Duel · " : "") + L.name;
+    $("lvl-pill").textContent = (duel ? (duel.mode === "ranked" ? "Duel classé · " : "Duel · ") : "") + L.name;
     $("again").textContent = "Rejouer";
     $("play").hidden = false;
     $("result").hidden = true;
@@ -2040,8 +2346,8 @@ button:disabled { cursor: default; }
 
   function inc(x) { return typeof x === "bigint" ? x + 1n : x + 1; }
   function dec(x) { return typeof x === "bigint" ? x - 1n : x - 1; }
-  function submit() {
-    if (s.phase !== "playing" || s.entry === "") return;
+  async function submit() {
+    if (s.phase !== "playing" || s.entry === "" || s.busy) return;
     var L = s.L;
     var n = L.max === Infinity ? BigInt(s.entry) : parseInt(s.entry, 10);   // Nightmare uses BigInt: no precision limit
     if ((typeof n === "number" && isNaN(n)) || n < 1 || n > L.max) {
@@ -2054,13 +2360,31 @@ button:disabled { cursor: default; }
       s.entry = ""; renderEntry();
       return;
     }
-    var w = $("word");
-    if (n === s.secret) {
-      s.guesses.push({ n: n, dir: "hit" });
-      win();
-      return;
+    var w = $("word"), dir;
+    if (mode === "account" && !s.tg) {
+      var res;
+      s.busy = true;
+      try { res = await srv("guess", { p_gid: s.gid, p_n: s.entry }); }
+      catch (e) {
+        s.busy = false;
+        if (mode !== "account") return;
+        var ec = e && e.code;
+        if (ec === "not_started") { setSub("Le duel n'a pas encore commencé.", true); s.entry = ""; renderEntry(); }
+        else if (ec === "excluded" || ec === "out_of_range" || ec === "bad_number") { setSub("Choisis un nombre valide.", true); s.entry = ""; renderEntry(); }
+        else if (ec === "no_game") { setSub("Cette partie n'existe plus. Relance une partie.", true); }
+        else setSub("Connexion perdue. Réessaie.", true);
+        return;
+      }
+      s.busy = false;
+      if (s.phase !== "playing") return;
+      if (res.dir === "lost" || res.dir === "won" || res.dir === "closed") { s.secret = secretVal(res.secret); applyProfile(res.profile); duelResult(res); return; }
+      dir = res.dir;
+      if (dir === "hit") { s.guesses.push({ n: n, dir: "hit" }); s.secret = n; win(res); return; }
+    } else {
+      dir = n === s.secret ? "hit" : (n < s.secret ? "plus" : "moins");
+      if (dir === "hit") { s.guesses.push({ n: n, dir: "hit" }); if (s.tg) { tutoWin(); return; } win(null); return; }
     }
-    if (n < s.secret) {
+    if (dir === "plus") {
       s.low = inc(n);
       s.guesses.push({ n: n, dir: "plus" });
       w.className = "word plus"; w.textContent = "Plus";
@@ -2079,6 +2403,7 @@ button:disabled { cursor: default; }
     renderRange();
     renderHistory();
     $("tries").textContent = String(s.guesses.length);
+    if (s.tg) tutoBot(n, dir);
   }
 
   function partRow(a, b) {
@@ -2089,19 +2414,26 @@ button:disabled { cursor: default; }
     return d;
   }
 
-  function win() {
+  function win(res) {
     stopTimer();
     s.elapsed = (performance.now() - s.t0) / 1000;
     s.phase = "won";
-    var L = s.L, attempts = s.guesses.length;
-    var sc = computeScore(L, attempts, s.elapsed, !!s.duel);
-    var isRecord = !s.duel && sc.total > me.best;
-    var patch = { games: me.games + 1, coins: me.coins + (s.duel ? 0 : sc.coins) };
-    if (isRecord) { patch.best = sc.total; patch.bestLvl = L.id; }
-    var lvlRecord = !s.duel && sc.total > (me.bests[L.id] || 0);
-    if (lvlRecord) { me.bests[L.id] = sc.total; patch["b_" + L.id] = sc.total; }
-    if (!s.duel) { var npm = missionsOnWin(L, attempts, sc.total); if (npm) { patch.mp = npm; toast("Défi accompli ! Récupère ta récompense dans Défis."); } }
-    persist(patch);
+    var L = s.L, attempts = s.guesses.length, sc, lvlRecord;
+    if (res) {
+      // account game: the server computed everything
+      sc = { a: res.a, t: res.t, base: res.base, total: res.total, coins: res.coins, b: { coin: res.bcoin, score: res.bscore } };
+      lvlRecord = !!res.record; s.elapsed = +res.elapsed; attempts = res.tries;
+      applyProfile(res.profile);
+      boardAt = {};
+    } else {
+      sc = computeScore(L, attempts, s.elapsed, !!s.duel);
+      var isRecord = !s.duel && sc.total > me.best;
+      var patch = { games: me.games + 1, coins: me.coins + (s.duel ? 0 : sc.coins) };
+      if (isRecord) { patch.best = sc.total; patch.bestLvl = L.id; }
+      lvlRecord = !s.duel && sc.total > (me.bests[L.id] || 0);
+      if (lvlRecord) { me.bests[L.id] = sc.total; patch["b_" + L.id] = sc.total; }
+      persist(patch);
+    }
 
     var w = $("word");
     w.className = "word win"; w.textContent = fmtInt(s.secret);
@@ -2127,7 +2459,7 @@ button:disabled { cursor: default; }
     s.low = s.secret; s.high = s.secret;
     renderRange();
     renderHistory();
-    if (s.duel) finishDuel(sc, attempts);
+    if (s.duel) duelOutcome(res);
     $("play").hidden = true;
     $("result").hidden = false;
   }
@@ -2143,19 +2475,26 @@ button:disabled { cursor: default; }
     var L = s.L;
     var remaining = L.max === Infinity ? Infinity : s.high - s.low + 1;
     if (L.max !== Infinity) {
-      /* bars sit exactly on the dots: the dot of number n is at (n - 0.5) / max */
-      var won = s.phase === "won";
-      var a = won ? (s.secret - 1) / L.max : Math.max(0, (s.low - 1.5) / L.max);
-      var z = won ? s.secret / L.max : Math.min(1, (s.high + 0.5) / L.max);
-      $("fill").style.left = "calc(" + (a * 100) + "% - 1.5px)";
-      $("fill").style.width = "calc(" + ((z - a) * 100) + "% + 3px)";
+      /* Number n sits at (n-1)/(max-1): 1 at the left end, max at the right end.
+         Bars, dots and the end labels all use the same position, inset 7px so end dots are not cut. */
+      var P = function (n) { return "(7px + (100% - 14px) * " + ((n - 1) / (L.max - 1)) + ")"; };
+
+      var f = $("fill"), won = s.phase === "won";
+      if (won) {                       // both bars collapse right under the found dot
+        f.style.left = "calc(" + P(s.secret) + " - 3px)";
+        f.style.right = "calc(100% - " + P(s.secret) + " - 3px)";
+      } else {
+        f.style.left = s.low <= 1 ? "0px" : "calc(" + P(s.low - 1) + " - 1.5px)";
+        f.style.right = s.high >= L.max ? "0px" : "calc(100% - " + P(s.high + 1) + " - 1.5px)";
+      }
+      f.style.width = "auto";
       var track = $("track");
       var old = track.querySelectorAll(".pin");
       for (var i = 0; i < old.length; i++) track.removeChild(old[i]);
       s.guesses.forEach(function (g) {
         var p = document.createElement("div");
         p.className = "pin" + (g.dir === "hit" ? " secret" : "");
-        p.style.left = ((g.n - 0.5) / L.max) * 100 + "%";
+        p.style.left = "calc" + P(g.n);
         track.appendChild(p);
       });
     }
@@ -2190,8 +2529,8 @@ button:disabled { cursor: default; }
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   function dayKey(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
   function dailyInfo() {
-    var now = new Date(), today = dayKey(now);
-    var y = new Date(now.getTime()); y.setDate(y.getDate() - 1);
+    var today = me.today || dayKey(new Date());
+    var y = new Date(today + "T12:00:00"); y.setDate(y.getDate() - 1);
     var dl = me.daily || { day: "", streak: 0 };
     var claimed = dl.day !== "" && dl.day >= today;
     var ns = claimed ? Math.max(1, dl.streak) : (dl.day === dayKey(y) ? dl.streak + 1 : 1);
@@ -2222,50 +2561,350 @@ button:disabled { cursor: default; }
     $("dailybox").hidden = true;
     if (s.phase === "menu") goMenu();
   }
+  var dailyBusy = false;
+  function showClaimed(info) {
+    $("daily-title").textContent = "Cadeau récupéré !";
+    $("daily-sub").textContent = "Reviens demain pour " + rewardText(DAILY[(info.idx + 1) % 7]).toLowerCase() + ".";
+    $("daily-dots").querySelectorAll(".dd").forEach(function (d, i) { d.classList.toggle("done", i <= info.idx); d.classList.remove("today"); });
+    var btn = $("daily-btn");
+    btn.textContent = "Super";
+    btn.dataset.state = "close";
+  }
   function claimDaily() {
     if (!me) return;
     var info = dailyInfo();
     if (info.claimed) { closeDaily(); return; }
+    if (mode === "account") {
+      if (dailyBusy) return;
+      dailyBusy = true;
+      srv("claim_daily").then(function (res) {
+        dailyBusy = false;
+        applyProfile(res.profile);
+        if (res.coins) { showClaimed(info); return; }
+        $("dailybox").hidden = true;
+        var egg = eggById(res.egg), pt = petById(res.pet);
+        if (egg && pt) playHatch(egg, pt, res.count);
+      }).catch(function (e) {
+        dailyBusy = false;
+        if (e && e.code === "already_claimed") { closeDaily(); return; }
+        toast("Impossible de récupérer le cadeau pour le moment.");
+      });
+      return;
+    }
     var r = DAILY[info.idx];
     var patch = { daily: { day: info.today, streak: info.streak } };
     if (r.coins) patch.coins = me.coins + r.coins;
     persist(patch);
-    if (r.coins) {
-      $("daily-title").textContent = "Cadeau récupéré !";
-      $("daily-sub").textContent = "Reviens demain pour " + rewardText(DAILY[(info.idx + 1) % 7]).toLowerCase() + ".";
-      $("daily-dots").querySelectorAll(".dd").forEach(function (d, i) { d.classList.toggle("done", i <= info.idx); d.classList.remove("today"); });
-      var btn = $("daily-btn");
-      btn.textContent = "Super";
-      btn.dataset.state = "close";
-    } else {
-      $("dailybox").hidden = true;
-      openEgg(r.egg, true);
-    }
+    if (r.coins) showClaimed(info);
+    else { $("dailybox").hidden = true; openEgg(r.egg, true); }
   }
 
-  /* ---------- duels: waiting room, then a race to the number ---------- */
-  var duelLvl = "normal", duelBusy = false, duelCur = null, duelUnsub = null, cdTimers = [];
-  var CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  var DUEL_MAX = 4;
-  function seeded(seed) {
-    var a = seed >>> 0;
-    return function () {
-      a = (a + 0x6D2B79F5) >>> 0;
-      var x = a;
-      x = Math.imul(x ^ (x >>> 15), x | 1);
-      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-    };
+  /* ---------- clubs ---------- */
+  function clNote(text, warn) { var n = $("cl-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
+  function clErr(e) {
+    var c = e && e.code;
+    if (c === "name_taken") return "Ce nom de club est déjà pris.";
+    if (c === "forbidden_name") return "Ce nom de club n'est pas autorisé. Choisis-en un autre.";
+    if (c === "bad_name") return "Le nom d'un club fait 3 à 20 caractères : lettres, chiffres, espace, _ . ' ou -.";
+    if (c === "forbidden") return "Tu n'as pas le droit de faire ça.";
+    return "Action impossible pour le moment. Vérifie ta connexion.";
   }
-  function newCode() { var c = ""; for (var i = 0; i < 6; i++) c += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length)); return c; }
+  var ROLE_LABEL = { leader: "Chef", officer: "Officier", member: "Membre" };
+  function setClubBadge() {
+    var c = clubData && clubData.club, n = c && c.requests ? c.requests.length : 0, b = $("club-badge");
+    b.hidden = !(n > 0); b.textContent = n > 9 ? "9+" : String(n);
+    $("open-clubs").setAttribute("aria-label", n > 0 ? "Clubs (" + n + (n > 1 ? " demandes)" : " demande)") : "Clubs");
+  }
+  function refreshClub(quiet) {
+    if (mode !== "account" || !ctx.sid) return Promise.resolve();
+    return srv("club_me").then(function (d) {
+      clubData = d;
+      setClubBadge();
+      if (s.phase === "club") renderClub();
+    }).catch(function () { if (!quiet && s.phase === "club") clNote("Impossible de charger les clubs. Vérifie ta connexion.", true); });
+  }
+  function loadClubList() {
+    return srv("club_list", { p_q: clQuery }).then(function (l) { clList = Array.isArray(l) ? l : []; if (s.phase === "club") renderClub(); })
+      .catch(function () { clNote("Impossible de charger la liste des clubs.", true); });
+  }
+  function goClub() {
+    if (mode !== "account") return;
+    stopTimer();
+    s.phase = "club";
+    clNote("");
+    renderClub();
+    show("club");
+    refreshClub(false).then(function () { if (!(clubData && clubData.club)) loadClubList(); });
+  }
+  function modeHelp(m) { return m === "open" ? "Ouvert : tout le monde peut entrer directement." : "Sur demande : le chef ou un officier accepte les nouveaux membres."; }
+  function setTabs(box, m) {
+    var bs = box.querySelectorAll(".tab");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-selected", bs[i].dataset.m === m ? "true" : "false");
+  }
+  function clRow(name, sub, btns, pet) {
+    return frRow({ name: name, pet: pet || "" }, btns, sub);
+  }
+  function renderClub() {
+    var c = clubData && clubData.club;
+    $("cl-none").hidden = !!c; $("cl-in").hidden = !c;
+    if (!c) {
+      $("cl-title").textContent = "Clubs";
+      setTabs($("cl-cmode"), clMode);
+      $("cl-chelp").textContent = modeHelp(clMode);
+      var pend = (clubData && clubData.pending) || [];
+      var box = $("cl-list"); box.innerHTML = "";
+      if (!clList.length) {
+        var e = document.createElement("p"); e.className = "note";
+        e.textContent = clQuery ? "Aucun club ne correspond à cette recherche." : "Aucun club pour l'instant. Crée le premier !";
+        box.appendChild(e);
+      }
+      clList.forEach(function (k) {
+        var full = k.members >= k.cap, asked = pend.indexOf(k.id) >= 0, btn;
+        if (asked) btn = { label: "Annuler", cls: "quiet", aria: "Annuler la demande à", fn: function () { clAct("club_cancel_request", { p_id: k.id }); } };
+        else if (full) btn = { label: "Complet", cls: "quiet", fn: function () {} };
+        else btn = { label: k.mode === "open" ? "Rejoindre" : "Demander", cls: "ok", aria: "Rejoindre", fn: function () { clAct("club_join", { p_id: k.id }, k); } };
+        var row = clRow(k.name, k.members + "/" + k.cap + " · " + (k.mode === "open" ? "Ouvert" : "Sur demande") + " · " + fmtInt(k.score) + " tr." + (asked ? " · demande envoyée" : ""), [btn]);
+        if (full || asked) { var bb = row.querySelector("button"); if (full) bb.disabled = true; }
+        box.appendChild(row);
+      });
+      return;
+    }
+    var role = c.role, boss = role === "leader", mod = boss || role === "officer";
+    $("cl-title").textContent = "Mon club";
+    $("cl-nameshow").textContent = c.name;
+    var tot = 0; c.members.forEach(function (m) { tot += m.trophies || 0; });
+    $("cl-meta").textContent = c.members.length + "/" + c.cap + " membres · " + (c.mode === "open" ? "Ouvert" : "Sur demande") + " · " + fmtInt(tot) + " trophées · Ton rôle : " + ROLE_LABEL[role];
+    $("cl-req-box").hidden = !(mod && c.requests.length);
+    var rq = $("cl-req"); rq.innerHTML = "";
+    (mod ? c.requests : []).forEach(function (r) {
+      rq.appendChild(frRow(r, [
+        { label: "Accepter", cls: "ok", aria: "Accepter", fn: function () { clAct("club_respond", { p_uid: r.uid, p_accept: true }); } },
+        { label: "Refuser", cls: "quiet", aria: "Refuser", fn: function () { clAct("club_respond", { p_uid: r.uid, p_accept: false }); } }
+      ], typeof r.trophies === "number" ? fmtInt(r.trophies) + " trophées" : ""));
+    });
+    $("cl-mem-title").textContent = "Membres (" + c.members.length + ")";
+    var ml = $("cl-members"); ml.innerHTML = "";
+    c.members.forEach(function (m) {
+      var acts = [];
+      if (boss && m.role !== "leader") {
+        acts.push({ label: m.role === "officer" ? "Retirer officier" : "Nommer officier", cls: "", fn: function () { clAct("club_role", { p_uid: m.uid, p_role: m.role === "officer" ? "member" : "officer" }); } });
+        acts.push({ label: "Passer le rôle de chef", cls: "", fn: function () { if (clAsk("Donner la direction du club à " + m.name + " ? Tu deviendras officier.")) clAct("club_role", { p_uid: m.uid, p_role: "leader" }); } });
+      }
+      if (mod && m.role !== "leader" && (boss || m.role === "member") && m.uid !== (ctx.uid || "")) {
+        acts.push({ label: "Exclure", cls: "danger", fn: function () { if (clAsk("Exclure " + m.name + " du club ?")) clAct("club_kick", { p_uid: m.uid }); } });
+      }
+      var sub = ROLE_LABEL[m.role] + " · " + fmtInt(m.trophies || 0) + " tr.";
+      var wrap = document.createElement("div"); wrap.className = "fwrap";
+      var row = frRow(m, [], sub);
+      wrap.appendChild(row);
+      if (acts.length) {
+        row.classList.add("tap");
+        row.setAttribute("role", "button"); row.setAttribute("tabindex", "0");
+        var more = document.createElement("div"); more.className = "fmore"; more.hidden = clOpenUid !== m.uid;
+        acts.forEach(function (a) {
+          var x = document.createElement("button"); x.type = "button"; x.className = "fsmall" + (a.cls ? " " + a.cls : ""); x.textContent = a.label;
+          x.addEventListener("click", a.fn); more.appendChild(x);
+        });
+        var tog = function () { clOpenUid = clOpenUid === m.uid ? null : m.uid; more.hidden = clOpenUid !== m.uid; };
+        row.addEventListener("click", tog);
+        row.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } });
+        wrap.appendChild(more);
+      }
+      ml.appendChild(wrap);
+    });
+    $("cl-set").hidden = !boss;
+    if (boss) {                                   // settings form: follow the server only when it changed, never overwrite typing
+      if (clSrvName !== c.name) { clSrvName = c.name; $("cl-newname").value = c.name; }
+      if (clSrvMode !== c.mode) { clSrvMode = c.mode; clSet = c.mode; }
+      setTabs($("cl-smode"), clSet);
+    } else { clSrvName = null; clSrvMode = null; }
+    $("cl-disband").hidden = !boss;
+    $("cl-leave").textContent = "Quitter le club";
+  }
+  function clAsk(msg) { try { return window.confirm(msg); } catch (e) { return true; } }
+  /* one action at a time; server decides everything, then we refresh */
+  function clAct(fn, args, k) {
+    if (clBusy) return;
+    clBusy = true;
+    srv(fn, args).then(function (r) {
+      clBusy = false;
+      var st = r && r.status;
+      var msg = {
+        joined: "Tu as rejoint le club !", requested: "Demande envoyée. Le chef ou un officier va la traiter.",
+        in_club: "Tu fais déjà partie d'un club.", full: "Ce club est complet.", gone: "Cette personne ou ce club n'existe plus.",
+        already_requested: "Tu as déjà fait une demande à ce club.", too_many: "Tu as déjà 3 demandes en attente. Annule-en une d'abord.",
+        accepted: "Nouveau membre accepté.", declined: "Demande refusée.", kicked: "Membre exclu.", ok: "", left: "Tu as quitté le club.", closed: "Le club a été fermé."
+      }[st];
+      clNote(msg || "", st === "in_club" || st === "full" || st === "gone" || st === "already_requested" || st === "too_many");
+      if (r && r.club !== undefined) clubData = { club: r.club, pending: [] };
+      return refreshClub(true).then(function () { if (!(clubData && clubData.club)) return loadClubList(); });
+    }).catch(function (e) { clBusy = false; clNote(clErr(e), true); });
+  }
+  function onClubCreate(e) {
+    e.preventDefault();
+    var name = $("cl-name").value.replace(/\s+/g, " ").trim();
+    if (name.length < 3 || name.length > 20) { clNote("Le nom d'un club fait 3 à 20 caractères.", true); return; }
+    if (clBusy) return;
+    clBusy = true; $("cl-create-go").disabled = true;
+    srv("club_create", { p_name: name, p_mode: clMode }).then(function (r) {
+      clBusy = false;
+      if (r && r.status === "created") { clubData = { club: r.club, pending: [] }; $("cl-name").value = ""; clNote("Club créé !"); setClubBadge(); renderClub(); }
+      else clNote("Tu fais déjà partie d'un club.", true);
+    }).catch(function (err) { clBusy = false; clNote(clErr(err), true); })
+      .then(function () { $("cl-create-go").disabled = false; });
+  }
+  function onClubSave(e) {
+    e.preventDefault();
+    var name = $("cl-newname").value.replace(/\s+/g, " ").trim();
+    if (name.length < 3 || name.length > 20) { clNote("Le nom d'un club fait 3 à 20 caractères.", true); return; }
+    if (clBusy) return;
+    clBusy = true; $("cl-save").disabled = true;
+    srv("club_update", { p_name: name, p_mode: clSet }).then(function (r) {
+      clBusy = false;
+      if (r && r.club) { clubData = { club: r.club, pending: [] }; clNote("Réglages enregistrés."); setClubBadge(); renderClub(); }
+    }).catch(function (err) { clBusy = false; clNote(clErr(err), true); })
+      .then(function () { $("cl-save").disabled = false; });
+  }
+
+  /* ---------- friends: personal code, requests, list ---------- */
+  function setFriendBadge(n) {
+    var b = $("friend-badge");
+    b.hidden = !(n > 0);
+    b.textContent = n > 9 ? "9+" : String(n);
+    $("open-friends").setAttribute("aria-label", n > 0 ? "Amis (" + n + (n > 1 ? " demandes)" : " demande)") : "Amis");
+  }
+  function refreshFriends(quiet) {
+    if (mode !== "account" || !ctx.sid) return Promise.resolve();
+    return srv("friends_list").then(function (d) {
+      friendsData = d;
+      if (me && d && typeof d.code === "string") me.friendCode = d.code;
+      setFriendBadge((d.incoming || []).length);
+      if (s.phase === "friends") renderFriends();
+    }).catch(function () { if (!quiet && s.phase === "friends") frNote("Impossible de charger tes amis. Vérifie ta connexion.", true); });
+  }
+  function frNote(text, warn) { var n = $("fr-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
+  function fmtCode(c) { return c && c.length === 8 ? c.slice(0, 4) + "-" + c.slice(4) : (c || "--------"); }
+  function frRow(f, btns, sub) {
+    var r = document.createElement("div");
+    r.className = "frow";
+    if (f.pet) { var pv = document.createElement("div"); pv.className = "pet"; pv.innerHTML = petSvg(f.pet); r.appendChild(pv); }
+    var n = document.createElement("div");
+    n.className = "fname";
+    n.appendChild(document.createTextNode(typeof f.name === "string" ? f.name : "Joueur"));
+    if (sub) { var sm = document.createElement("small"); sm.textContent = sub; n.appendChild(sm); }
+    r.appendChild(n);
+    var act = document.createElement("div");
+    act.className = "fact";
+    btns.forEach(function (b) {
+      var x = document.createElement("button");
+      x.type = "button"; x.className = "fsmall" + (b.cls ? " " + b.cls : ""); x.textContent = b.label;
+      if (b.aria) x.setAttribute("aria-label", b.aria + " " + (f.name || ""));
+      x.addEventListener("click", function () { b.fn(f, x); });
+      act.appendChild(x);
+    });
+    r.appendChild(act);
+    return r;
+  }
+  function renderFriends() {
+    var d = friendsData || { code: me ? me.friendCode : "", friends: [], incoming: [], outgoing: [] };
+    $("fr-code").textContent = fmtCode(d.code || (me && me.friendCode));
+    var inn = d.incoming || [], out = d.outgoing || [], fl = d.friends || [];
+    $("fr-in-box").hidden = !inn.length; $("fr-out-box").hidden = !out.length;
+    var a = $("fr-in"); a.innerHTML = "";
+    inn.forEach(function (f) {
+      a.appendChild(frRow(f, [
+        { label: "Accepter", cls: "ok", aria: "Accepter", fn: function () { respondFriend(f, true); } },
+        { label: "Refuser", cls: "quiet", aria: "Refuser", fn: function () { respondFriend(f, false); } }
+      ]));
+    });
+    var o = $("fr-out"); o.innerHTML = "";
+    out.forEach(function (f) {
+      o.appendChild(frRow(f, [{ label: "Annuler", cls: "quiet", aria: "Annuler la demande à", fn: function () { removeFriend(f, false); } }], "En attente"));
+    });
+    $("fr-title").textContent = "Mes amis" + (fl.length ? " (" + fl.length + ")" : "");
+    var l = $("fr-list"); l.innerHTML = "";
+    if (!fl.length) {
+      var e = document.createElement("p"); e.className = "note"; e.textContent = "Pas encore d'ami. Partage ton code ou entre celui d'un ami ci-dessus.";
+      l.appendChild(e);
+    }
+    fl.forEach(function (f) {
+      l.appendChild(frRow(f, [{ label: "Retirer", cls: "quiet", aria: "Retirer", fn: function () { removeFriend(f, true); } }],
+        typeof f.trophies === "number" ? fmtInt(f.trophies) + (f.trophies > 1 ? " trophées" : " trophée") : ""));
+    });
+  }
+  function goFriends() {
+    if (mode !== "account") return;
+    stopTimer();
+    s.phase = "friends";
+    frNote("");
+    renderFriends();
+    show("friends");
+    refreshFriends(false);
+  }
+  function friendCall(name, args) {
+    if (frBusy) return Promise.reject(new Error("busy"));
+    frBusy = true;
+    return srv(name, args).then(function (r) { frBusy = false; return r; }, function (e) { frBusy = false; throw e; });
+  }
+  function onFriendAdd(e) {
+    e.preventDefault();
+    var code = $("fr-input").value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (code.length !== 8) { frNote("Un code d'ami contient 8 lettres ou chiffres.", true); return; }
+    if (me && code === me.friendCode) { frNote("C'est ton propre code ! Donne-le à un ami.", true); return; }
+    $("fr-send").disabled = true;
+    friendCall("friend_request", { p_code: code }).then(function (r) {
+      var st = r && r.status, nm = r && r.name;
+      var msg = {
+        sent: "Demande envoyée" + (nm ? " à " + nm : "") + ".",
+        accepted: (nm || "Ce joueur") + " et toi êtes maintenant amis !",
+        unknown: "Ce code d'ami n'existe pas. Vérifie-le avec ton ami.",
+        self: "C'est ton propre code ! Donne-le à un ami.",
+        friends: "Vous êtes déjà amis" + (nm ? " avec " + nm : "") + ".",
+        pending: "Tu as déjà envoyé une demande" + (nm ? " à " + nm : "") + ".",
+        closed: (nm || "Ce joueur") + " n'accepte pas les demandes d'amis.",
+        full: "Impossible pour le moment : liste d'amis ou de demandes pleine.",
+        rate: "Trop d'essais avec de mauvais codes. Réessaie dans quelques minutes."
+      }[st] || "Demande impossible pour le moment.";
+      frNote(msg, !(st === "sent" || st === "accepted"));
+      if (st === "sent" || st === "accepted") $("fr-input").value = "";
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Impossible d'envoyer la demande. Vérifie ta connexion.", true); })
+      .then(function () { $("fr-send").disabled = false; });
+  }
+  function respondFriend(f, accept) {
+    friendCall("friend_respond", { p_fid: f.fid, p_accept: accept }).then(function (r) {
+      var st = r && r.status;
+      frNote(st === "accepted" ? (f.name || "Ce joueur") + " est maintenant ton ami !" : st === "declined" ? "Demande refusée." :
+        st === "full" ? "Impossible : liste d'amis pleine (toi ou lui)." : "Cette demande n'existe plus.", st === "full");
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Action impossible pour le moment.", true); });
+  }
+  function removeFriend(f, isFriend) {
+    if (isFriend) {
+      var ok = true;
+      try { ok = window.confirm("Retirer " + (f.name || "cet ami") + " de ta liste d'amis ?"); } catch (e) {}
+      if (!ok) return;
+    }
+    friendCall("friend_remove", { p_fid: f.fid }).then(function (r) {
+      frNote(r && r.status === "removed" ? (isFriend ? "Ami retiré." : "Demande annulée.") : "Cette personne n'est déjà plus dans ta liste.");
+      return refreshFriends(true);
+    }).catch(function (err) { if (!err || err.message !== "busy") frNote("Action impossible pour le moment.", true); });
+  }
+  function copyFriendCode() {
+    var c = me && me.friendCode;
+    if (!c) return;
+    function done(okc) { var b = $("fr-copy"); b.textContent = okc ? "Copié !" : "Copie impossible"; setTimeout(function () { b.textContent = "Copier"; }, 1500); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(c).then(function () { done(true); }, function () { done(false); }); return; }
+    } catch (e) {}
+    done(false);
+  }
+
+  /* ---------- duels: automatic matchmaking, then a race to the number ---------- */
+  var duelLvl = "normal", duelMode = "casual", duelCur = null, searchCur = null, cdTimers = [];
+  var duelPoll = null, duelFails = 0;
   function duelNote(text, warn) { var n = $("duel-note"); n.textContent = text; n.classList.toggle("warn", !!warn); }
-  function duelReady() { return mode === "account" && !!ctx.db && !!ctx.uid; }
-  function validDuel(d) { return !!d && !!lvlById(d.lvl) && typeof d.seed === "number" && d.seed > 0 && typeof d.status === "string"; }
-  function copyCode(code) {
-    if (!code) return;
-    try { navigator.clipboard.writeText(code).then(function () { toast("Code copié : " + code); }, function () { toast("Code de la salle : " + code); }); }
-    catch (e) { toast("Code de la salle : " + code); }
-  }
+  function duelReady() { return mode === "account" && !!FB && !!ctx.uid; }
   function renderDuelLvls() {
     var box = $("duel-lvls");
     box.innerHTML = "";
@@ -2276,213 +2915,220 @@ button:disabled { cursor: default; }
       box.appendChild(b);
     });
   }
-  function activePlayers(d) {
-    var out = [], pl = (d && d.players) || {};
-    for (var k in pl) if (Object.prototype.hasOwnProperty.call(pl, k) && pl[k] && !pl[k].left) out.push({ uid: k, name: typeof pl[k].name === "string" ? pl[k].name : "Joueur", joined: +pl[k].joined || 0 });
-    out.sort(function (a, c) { return a.joined - c.joined; });
-    return out;
+  function renderDuelHome() {
+    var tr = me ? me.trophies : 0;
+    $("duel-trophies").textContent = fmtInt(tr) + (tr > 1 ? " trophées" : " trophée");
+    var w = me ? me.duelWins : 0, l = me ? me.duelLosses : 0;
+    $("duel-record").textContent = w + l ? "Duels classés : " + w + (w > 1 ? " victoires" : " victoire") + ", " + l + (l > 1 ? " défaites" : " défaite") : "Aucun duel classé joué pour l'instant.";
   }
   function clearCd() { cdTimers.forEach(clearTimeout); cdTimers = []; $("cd").hidden = true; }
-  function leaveDuel() {
+  function stopDuelPoll() { clearInterval(duelPoll); duelPoll = null; }
+  function stopSearch() { if (searchCur) { searchCur.dead = true; clearInterval(searchCur.interval); } searchCur = null; }
+  function trophyText(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n) + (Math.abs(n) > 1 ? " trophées" : " trophée"); }
+
+  /* -- searching -- */
+  function startSearch(m) {
+    if (!duelReady() || searchCur || duelCur) return;
+    duelMode = m;
+    var tok = { mode: m, lvl: duelLvl, fails: 0, dead: false, busy: false, interval: null };
+    searchCur = tok;
+    s.phase = "lobby";
+    var L = lvlById(tok.lvl);
+    $("lobby-title").textContent = "Recherche d'un adversaire";
+    $("lobby-mode").textContent = m === "ranked" ? "Duel classé" : "Duel occasionnel";
+    $("lobby-main").textContent = "Recherche en cours";
+    $("lobby-main").classList.add("searching");
+    $("lobby-level").textContent = L ? "Niveau " + L.name + " · " + L.range : "";
+    $("lobby-wait").textContent = "";
+    $("lobby-note").textContent = m === "ranked" ? "Plus tu attends, plus la recherche s'élargit à des joueurs de trophées plus éloignés." : "Tu seras mis face au premier joueur disponible.";
+    $("lobby-leave").hidden = false;
+    show("lobby");
+    searchTick(tok);
+    tok.interval = setInterval(function () { searchTick(tok); }, 1500);
+  }
+  function searchTick(tok) {
+    if (tok.dead || tok.busy) return;
+    tok.busy = true;
+    srv("matchmake", { p_mode: tok.mode, p_lvl: tok.lvl }).then(function (res) {
+      tok.busy = false; tok.fails = 0;
+      if (tok.dead) return;
+      if (res && res.status === "matched") { stopSearch(); onMatched(res.duel); return; }
+      var w = res && +res.waited || 0, n = res && +res.searching || 1;
+      $("lobby-wait").textContent = "Recherche depuis " + w + " s · " + n + (n > 1 ? " joueurs en recherche" : " joueur en recherche");
+    }).catch(function () {
+      tok.busy = false;
+      if (tok.dead) return;
+      if (++tok.fails >= 5) { stopSearch(); goDuel(); duelNote("Impossible de chercher un adversaire : vérifie ta connexion.", true); }
+    });
+  }
+  function cancelSearch() {
+    if (!searchCur) { goDuel(); return; }
+    stopSearch();
+    $("lobby-leave").hidden = true;
+    srv("cancel_match").then(function (r) {
+      if (r && r.status === "matched") { toast("Un adversaire vient d'être trouvé !"); onMatched(r.duel); }
+      else goDuel();
+    }).catch(function () { goDuel(); });
+  }
+
+  /* -- a match was found: short countdown (set by the server so both players start together) -- */
+  function onMatched(d) {
+    stopSearch(); stopDuelPoll(); clearCd();
+    var c = { code: d.code, data: d, ended: false, polling: false, gid: null };
+    duelCur = c;
+    duelMode = d.mode;
+    s.phase = "lobby";
+    var opp = (d.players || []).filter(function (p) { return p.uid !== ctx.uid; })[0] || {};
+    var L = lvlById(d.lvl);
+    $("lobby-title").textContent = "Adversaire trouvé !";
+    $("lobby-mode").textContent = d.mode === "ranked" ? "Duel classé" : "Duel occasionnel";
+    var oname = typeof opp.name === "string" ? opp.name : "Joueur";
+    $("lobby-main").classList.remove("searching");
+    $("lobby-main").textContent = oname;
+    $("lobby-level").textContent = (L ? "Niveau " + L.name + " · " + L.range : "") + (d.mode === "ranked" && typeof opp.trophies === "number" ? " · " + fmtInt(opp.trophies) + " trophées" : "");
+    $("lobby-wait").textContent = "";
+    $("lobby-note").textContent = "Préparez-vous : vous cherchez le même nombre.";
+    $("lobby-leave").hidden = true;
+    show("lobby");
+    duelFails = 0;
+    duelPoll = setInterval(pollDuel, 1200);
+    srv("duel_game", { p_code: d.code }).then(function (g) {
+      if (duelCur === c) c.gid = g.gid;
+    }).catch(function () { if (duelCur === c) endDuelEarly("Impossible de lancer le duel. Réessaie."); });
+    runCountdown(c, performance.now() + (+d.start_in || 0));
+  }
+  function runCountdown(c, startAt) {
+    var box = $("cd"), num = $("cd-num"), waited = 0;
+    function tick() {
+      if (duelCur !== c) return;
+      var rem = startAt - performance.now();
+      if (rem > 0) {
+        box.hidden = false;
+        num.textContent = String(Math.max(1, Math.min(3, Math.ceil(rem / 1000))));
+        cdTimers.push(setTimeout(tick, 100));
+        return;
+      }
+      if (!c.gid) {
+        waited += 100;
+        if (waited > 8000) { endDuelEarly("Impossible de lancer le duel. Réessaie."); return; }
+        cdTimers.push(setTimeout(tick, 100));
+        return;
+      }
+      clearCd();
+      startGame(c.data.lvl, { code: c.code, lvl: c.data.lvl, gid: c.gid, mode: c.data.mode });
+    }
+    tick();
+  }
+
+  /* -- heartbeat: the server treats 30 s of silence as a disconnection (forfeit) -- */
+  function pollDuel() {
     var c = duelCur;
-    if (duelUnsub) { try { duelUnsub(); } catch (e) {} duelUnsub = null; }
-    duelCur = null;
-    clearCd();
-    if (!c || !c.ref || !c.data || c.data.status !== "waiting") return;
-    var upd;
-    if (c.role === "host") upd = { status: "closed" };
-    else { var pl = {}; pl[ctx.uid] = { left: true }; upd = { players: pl }; }
-    c.ref.update(upd).catch(function () {});
+    if (!c || c.polling || c.ended) return;
+    c.polling = true;
+    srv("duel_state", { p_code: c.code }).then(function (d) {
+      c.polling = false; duelFails = 0;
+      if (duelCur === c) onDuelSnap(d);
+    }).catch(function (e) {
+      c.polling = false;
+      if (duelCur !== c) return;
+      if (e && e.code === "no_room") { endDuelEarly("Ce duel n'existe plus."); return; }
+      if (++duelFails >= 8) endDuelEarly("La connexion a été perdue.");
+    });
+  }
+  function onDuelSnap(d) {
+    var c = duelCur;
+    if (!c || !d) return;
+    c.data = d;
+    if (d.status === "playing") return;
+    if (s.phase === "playing" && s.duel) {                // finished while we were still guessing
+      if (!s.duelEnded && !s.busy) {
+        s.duelEnded = true;
+        srv("finish_lost", { p_gid: s.gid }).then(function (res) {
+          s.secret = secretVal(res.secret);
+          applyProfile(res.profile);
+          duelResult(res);
+        }).catch(function () { s.duelEnded = false; });
+      }
+      return;
+    }
+    if (s.phase === "lobby") {                             // opponent left before the first guess
+      applyProfile(d.profile);
+      c.ended = true;
+      clearCd(); stopDuelPoll(); duelCur = null;
+      goDuel();
+      var iWon = d.winner && d.winner.uid === ctx.uid;
+      duelNote(d.status === "closed" ? "Le duel a été annulé." :
+        iWon ? "Ton adversaire a quitté avant le début : victoire" + (d.mode === "ranked" && d.dw ? " (" + trophyText(d.dw) + ")." : ".") :
+        "Tu as été déconnecté du duel" + (d.mode === "ranked" && d.dl ? " (" + trophyText(-d.dl) + ")." : "."), !iWon);
+    }
   }
   function endDuelEarly(text) {
     leaveDuel();
     goDuel();
     duelNote(text, true);
   }
-  function openLobby(code, role) {
-    duelCur = { code: code, role: role, data: null, started: false, ref: ctx.db.doc("challenges/" + code) };
-    s.phase = "lobby";
-    $("lobby-code").textContent = code;
-    $("lobby-players").innerHTML = "";
-    $("lobby-start").hidden = role !== "host";
-    $("lobby-start").disabled = true;
-    $("lobby-note").textContent = "Connexion à la salle...";
-    show("lobby");
+  function leaveDuel() {
     var c = duelCur;
-    duelUnsub = c.ref.onSnapshot(onDuelSnap, function () {
-      if (duelCur === c) endDuelEarly("La connexion à la salle a été perdue.");
-    });
+    if (searchCur) { stopSearch(); if (mode === "account") srv("cancel_match").catch(function () {}); }
+    stopDuelPoll(); clearCd();
+    duelCur = null;
+    if (c && !c.ended && mode === "account") {             // leaving a running duel = forfeit
+      srv("forfeit_duel", { p_code: c.code }).then(function (r) { if (r && r.profile) applyProfile(r.profile); }).catch(function () {});
+    }
   }
-  function onDuelSnap(snap) {
+  /* back button during a duel: ask first, because quitting is a defeat */
+  function confirmLeave() {
     var c = duelCur;
-    if (!c) return;
-    if (!snap.exists) { endDuelEarly("Cette salle n'existe plus."); return; }
-    var d = snap.data();
-    c.data = d;
-    if (s.phase === "lobby") {
-      if (d.status === "closed" && c.role !== "host") { endDuelEarly("L'hôte a fermé la salle."); return; }
-      renderLobby();
-      if (d.status === "playing" && !c.started) { c.started = true; runCountdown(d); }
-    } else if (s.phase === "playing" && s.duel && d.winner && d.winner.uid !== ctx.uid && !s.duelEnded) {
-      loseDuel(d.winner);
-    }
+    if (!c || c.ended || (s.phase !== "playing" && s.phase !== "lobby")) return true;
+    var msg = "Quitter le duel maintenant, c'est une défaite" + (c.data && c.data.mode === "ranked" ? " : tu perds des trophées" : "") + ". Quitter quand même ?";
+    try { return window.confirm(msg); } catch (e) { return true; }
   }
-  function renderLobby() {
-    var c = duelCur, d = c && c.data;
-    if (!d) return;
-    var L = lvlById(d.lvl);
-    $("lobby-level").textContent = L ? "Niveau " + L.name + " · " + L.range : "";
-    var box = $("lobby-players");
-    box.innerHTML = "";
-    var list = activePlayers(d);
-    list.forEach(function (pl) {
-      var row = document.createElement("div"); row.className = "plr";
-      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = pl.name;
-      row.appendChild(nm);
-      var tag = pl.uid === d.host ? "Hôte" : (pl.uid === ctx.uid ? "Toi" : "");
-      if (tag) { var tg = document.createElement("span"); tg.className = "tag"; tg.textContent = tag; row.appendChild(tg); }
-      box.appendChild(row);
-    });
-    if (list.length < 2) {
-      var w = document.createElement("div"); w.className = "plr wait";
-      w.textContent = "En attente d'un ami...";
-      box.appendChild(w);
-    }
-    var hostName = typeof d.hname === "string" ? d.hname : "l'hôte";
-    if (c.role === "host") {
-      $("lobby-start").disabled = list.length < 2 || d.status !== "waiting";
-      $("lobby-note").textContent = list.length < 2 ? "Donne le code à ton ami. Tu pourras lancer la partie dès qu'il aura rejoint." : "Tout le monde est là. Tu peux lancer la partie.";
-    } else {
-      $("lobby-note").textContent = "Tu as rejoint la salle de " + hostName + ". Il va lancer la partie.";
-    }
-  }
-  function runCountdown(d) {
-    var n = 3, box = $("cd"), num = $("cd-num");
-    box.hidden = false;
-    num.textContent = String(n);
-    function tick3() {
-      n--;
-      if (n > 0) { num.textContent = String(n); cdTimers.push(setTimeout(tick3, 800)); return; }
-      clearCd();
-      var c = duelCur;
-      if (!c) return;
-      startGame(d.lvl, { code: c.code, lvl: d.lvl, seed: d.seed });
-    }
-    cdTimers.push(setTimeout(tick3, 800));
-  }
-  async function createDuel() {
-    if (duelBusy || !duelReady()) return;
-    duelBusy = true; $("duel-create").disabled = true;
-    try {
-      var code = "";
-      for (var n = 0; n < 5 && !code; n++) {
-        var c = newCode();
-        var snap = await ctx.db.doc("challenges/" + c).get();
-        if (!snap.exists) code = c;
-      }
-      if (!code) { duelNote("Impossible de créer la salle. Réessaie.", true); return; }
-      var seed = 1 + Math.floor(Math.random() * 2147483646);
-      var players = {}; players[ctx.uid] = { name: me.name, joined: Date.now() };
-      await ctx.db.doc("challenges/" + code).set({ code: code, lvl: duelLvl, seed: seed, host: ctx.uid, hname: me.name, status: "waiting", players: players, created: Date.now() });
-      openLobby(code, "host");
-    } catch (e) {
-      duelNote("Impossible de créer la salle pour le moment.", true);
-    } finally {
-      duelBusy = false; $("duel-create").disabled = false;
-    }
-  }
-  async function joinDuel(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (duelBusy || !duelReady()) return;
-    var code = $("duel-code").value.trim().toUpperCase();
-    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) { duelNote("Le code fait 6 caractères (lettres et chiffres).", true); return; }
-    duelBusy = true; $("duel-join").disabled = true;
-    try {
-      var ref = ctx.db.doc("challenges/" + code);
-      var snap = await ref.get();
-      var d = snap.exists ? snap.data() : null;
-      if (!validDuel(d)) { duelNote("Aucune salle avec ce code.", true); return; }
-      var list = activePlayers(d);
-      var already = list.some(function (pl) { return pl.uid === ctx.uid; });
-      if (d.status !== "waiting" && !(already && d.status === "waiting")) { duelNote("Cette partie a déjà commencé ou la salle est fermée.", true); return; }
-      if (!already && list.length >= DUEL_MAX) { duelNote("La salle est pleine.", true); return; }
-      if (!already) {
-        var pl = {}; pl[ctx.uid] = { name: me.name, joined: Date.now(), left: false };
-        await ref.update({ players: pl });
-      }
-      $("duel-code").value = "";
-      openLobby(code, d.host === ctx.uid ? "host" : "guest");
-    } catch (err) {
-      duelNote("Impossible de rejoindre la salle pour le moment.", true);
-    } finally {
-      duelBusy = false; $("duel-join").disabled = false;
-    }
-  }
-  function startDuelAsHost() {
-    var c = duelCur;
-    if (!c || c.role !== "host" || !c.data) return;
-    if (activePlayers(c.data).length < 2 || c.data.status !== "waiting") return;
-    $("lobby-start").disabled = true;
-    c.ref.update({ status: "playing", startedAt: Date.now() }).catch(function () {
-      $("lobby-start").disabled = false;
-      toast("Impossible de lancer la partie. Réessaie.");
-    });
-  }
-  function duelOutcome(won, w, sc, attempts) {
+
+  /* -- end of a duel -- */
+  function duelOutcome(res) {
     s.duelEnded = true;
-    var wname = w && typeof w.name === "string" ? w.name : "Un autre joueur";
-    var parts = $("parts");
-    if (won) {
-      persist({ coins: me.coins + sc.coins });
-      $("badge").textContent = "Victoire";
-      $("badge").hidden = false;
-      parts.appendChild(partRow("Pièces gagnées", "+" + fmtInt(sc.coins)));
-      $("tip").textContent = "Tu as trouvé le nombre en premier : tu gagnes la partie !";
-    } else {
-      var wd = $("word"); wd.className = "word moins"; wd.textContent = "Perdu";
-      setSub(wname + " a été plus rapide.");
-      parts.appendChild(partRow("Gagnant", wname));
-      $("tip").textContent = "Tu as trouvé le nombre, mais " + wname + " l'a trouvé avant toi.";
-    }
+    if (duelCur) duelCur.ended = true;
+    stopDuelPoll();
+    $("badge").textContent = "Victoire";
+    $("badge").hidden = false;
+    if (res && res.dmode === "ranked") $("parts").appendChild(partRow("Trophées", trophyText(res.trophies)));
+    $("tip").textContent = "Tu as trouvé le nombre en premier : tu gagnes le duel !" + (res && res.dmode === "ranked" ? "" : " (Duel occasionnel : aucun trophée en jeu.)");
+    $("again").textContent = "Retour aux duels";
   }
-  function finishDuel(sc, attempts) {
-    var c = duelCur;
-    $("again").textContent = "Quitter la salle";
-    $("tip").textContent = "Vérification du gagnant...";
-    if (!c || !c.ref) return;
-    if (c.data && c.data.winner && c.data.winner.uid !== ctx.uid) { duelOutcome(false, c.data.winner, sc, attempts); return; }
-    var ref = c.ref;
-    var win = { uid: ctx.uid, name: me.name, score: sc.total, tries: attempts, time: Math.round(s.elapsed * 10) / 10 };
-    ref.update({ status: "done", winner: win }).then(function () {
-      duelOutcome(true, win, sc, attempts);
-    }).catch(function () {
-      return ref.get().then(function (sn) {
-        var dd = sn.exists ? sn.data() : null;
-        if (dd && dd.winner && dd.winner.uid === ctx.uid) duelOutcome(true, dd.winner, sc, attempts);
-        else if (dd && dd.winner) duelOutcome(false, dd.winner, sc, attempts);
-        else $("tip").textContent = "Le résultat n'a pas pu être enregistré.";
-      });
-    }).catch(function () { $("tip").textContent = "Le résultat n'a pas pu être enregistré."; });
-  }
-  function loseDuel(w) {
+  function duelResult(res) {
     s.duelEnded = true;
+    if (duelCur) duelCur.ended = true;
     s.phase = "lost";
-    stopTimer();
-    persist({ games: me.games + 1 });
-    var wname = typeof w.name === "string" ? w.name : "Un autre joueur";
-    var wd = $("word"); wd.className = "word moins"; wd.textContent = "Perdu";
-    pop(wd);
-    setSub(wname + " a trouvé " + fmtInt(s.secret) + (w.tries ? " en " + w.tries + (w.tries > 1 ? " essais." : " essai.") : "."));
-    setMascot("mascot-game", "down");
-    $("badge").hidden = true;
-    $("score").textContent = "-";
-    var parts = $("parts");
+    stopTimer(); stopDuelPoll();
+    var ranked = res.mode === "ranked", w = res.winner, wd = $("word"), parts = $("parts");
     parts.innerHTML = "";
-    parts.appendChild(partRow("Gagnant", wname));
-    if (w.tries) parts.appendChild(partRow("Ses essais", String(w.tries)));
-    if (w.time) parts.appendChild(partRow("Son temps", fmtTime(+w.time)));
-    $("tip").textContent = "Tu n'as pas été assez rapide. Reviens et lance une nouvelle partie !";
-    $("again").textContent = "Quitter la salle";
+    $("badge").hidden = true;
+    if (res.dir === "lost") {
+      var wname = w && typeof w.name === "string" ? w.name : "Ton adversaire";
+      wd.className = "word moins"; wd.textContent = "Perdu";
+      if (res.reason !== "forfeit") setSub(wname + " a trouvé " + fmtInt(s.secret) + (w.tries ? " en " + w.tries + (w.tries > 1 ? " essais." : " essai.") : "."));
+      else setSub("Tu as été déconnecté du duel. Le nombre était " + fmtInt(s.secret) + ".");
+      setMascot("mascot-game", "down");
+      parts.appendChild(partRow("Gagnant", wname));
+      if (w && w.tries) parts.appendChild(partRow("Ses essais", String(w.tries)));
+      if (w && w.time) parts.appendChild(partRow("Son temps", fmtTime(+w.time)));
+      if (ranked) parts.appendChild(partRow("Trophées", trophyText(res.trophies)));
+      $("tip").textContent = "Tu n'as pas été assez rapide. Reviens et lance un nouveau duel !";
+    } else if (res.dir === "won") {
+      wd.className = "word win"; wd.textContent = "Victoire";
+      setSub("Ton adversaire a quitté le duel. Le nombre était " + fmtInt(s.secret) + ".");
+      setMascot("mascot-game", "win");
+      if (ranked) parts.appendChild(partRow("Trophées", trophyText(res.trophies)));
+      $("tip").textContent = "Tu gagnes par forfait.";
+    } else {
+      wd.className = "word"; wd.textContent = "Annulé";
+      setSub("Le duel a été annulé : personne n'a trouvé le nombre à temps. Il était " + fmtInt(s.secret) + ".");
+      setMascot("mascot-game", "idle");
+      $("tip").textContent = "Aucun trophée n'a changé.";
+    }
+    pop(wd);
+    $("score").textContent = "-";
+    $("again").textContent = "Retour aux duels";
     $("play").hidden = true;
     $("result").hidden = false;
   }
@@ -2490,137 +3136,49 @@ button:disabled { cursor: default; }
     stopTimer();
     s.phase = "duel";
     renderDuelLvls();
+    renderDuelHome();
     var ok = duelReady();
-    $("duel-create").disabled = !ok;
-    $("duel-join").disabled = !ok;
-    $("duel-code").disabled = !ok;
-    duelNote(ok ? "" : (mode === "account" ? "Impossible de créer une salle pour le moment." : "Connecte-toi avec un compte pour défier un ami."), !ok);
+    $("duel-casual").disabled = !ok;
+    $("duel-ranked").disabled = !ok;
+    duelNote(ok ? "" : (mode === "account" ? "Les duels sont indisponibles pour le moment." : "Connecte-toi avec un compte pour jouer en duel."), !ok);
     show("duel");
   }
 
-  /* ---------- remote settings (Firestore: config/shop, config/pets) and missions ---------- */
-  var DEFAULT_MISSIONS = [
-    { id: "d1", title: "Premiers pas", type: "games", level: "", target: 5, reward: 50, order: 1 },
-    { id: "d2", title: "Éleveur", type: "hatch", level: "", target: 3, reward: 60, order: 2 },
-    { id: "d3", title: "Éclair", type: "tries", level: "normal", target: 6, reward: 100, order: 3 },
-    { id: "d4", title: "Gros score", type: "score", level: "normal", target: 1200, reward: 150, order: 4 },
-    { id: "d5", title: "Marathonien", type: "games", level: "", target: 25, reward: 200, order: 5 }
-  ];
-  var remoteMissions = null, configStarted = false, DSHINY = SHINY_CHANCE, SHINY_MULT = 1.5;
-  EGGS.forEach(function (e) { e.dprice = e.price; e.dodds = e.odds.slice(); });
-  PETS.forEach(function (q) { q.dpct = q.pct; });
+  /* ---------- remote settings (Supabase cfg_* tables) ---------- */
+  var configAt = 0, SHINY_MULT = 1.5;
   function okNum(v, lo, hi) { v = +v; return isFinite(v) && v >= lo && v <= hi ? v : null; }
-  function applyShop(d) {
-    d = d || {};
-    EGGS.forEach(function (e) {
-      var v = okNum(d["egg_" + e.id], 1, 10000000);
-      e.price = v === null ? e.dprice : Math.round(v);
-      var o = d["odds_" + e.id], arr = typeof o === "string" ? o.split(/[\s,;]+/).filter(Boolean).map(Number) : null;
-      if (arr && arr.length === e.dodds.length && arr.every(function (x) { return isFinite(x) && x >= 0; }) && arr.reduce(function (a, b) { return a + b; }, 0) > 0) e.odds = arr;
-      else e.odds = e.dodds.slice();
+  function applyConfig(c) {
+    if (!c || typeof c !== "object") return;
+    var v;
+    (c.eggs || []).forEach(function (x) {
+      var e = eggById(x.id);
+      if (!e) return;
+      if ((v = okNum(x.price, 1, 10000000)) !== null) e.price = Math.round(v);
+      if (Array.isArray(x.odds) && x.odds.length === e.odds.length && x.odds.every(function (o) { return isFinite(+o) && +o >= 0; })) e.odds = x.odds.map(Number);
     });
-    var sh = okNum(d.shiny_chance, 0, 100);
-    SHINY_CHANCE = sh === null ? DSHINY : sh;
-  }
-  function applyPets(d) {
-    d = d || {};
-    var sm = okNum(d.shiny_mult, 0.1, 20);
-    SHINY_MULT = sm === null ? 1.5 : sm;
-    PETS.forEach(function (q, i) {
-      var v = okNum(d[q.id], 1, 1000);
-      q.pct = v === null ? q.dpct : Math.round(v);
-      SPETS[i].pct = Math.max(1, Math.round(q.pct * SHINY_MULT));
+    var st = c.settings || {};
+    if ((v = okNum(st.shiny_chance, 0, 100)) !== null) SHINY_CHANCE = v;
+    if ((v = okNum(st.shiny_mult, 0.1, 20)) !== null) SHINY_MULT = v;
+    if ((v = okNum(st.shiny_sell_mult, 1, 100)) !== null) SHINY_SELL = v;
+    if ((v = okNum(st.uni_weight, 1, 1000)) !== null) UNI_WEIGHT = v;
+    if ((v = okNum(st.coin_div, 1, 1000000)) !== null) COIN_DIV = v;
+    (c.pets || []).forEach(function (x) {
+      PETS.forEach(function (q) { if (q.id === x.id && (v = okNum(x.pct, 1, 1000)) !== null) q.pct = Math.round(v); });
     });
+    PETS.forEach(function (q, i) { SPETS[i].pct = Math.max(1, Math.round(q.pct * SHINY_MULT)); });
+    (c.rar || []).forEach(function (x) { if (RAR[x.r] && okNum(x.sell, 0, 1000000) !== null) RAR[x.r].sell = +x.sell; });
+    if (Array.isArray(c.daily) && c.daily.length === 7) DAILY = c.daily.map(function (d) { return d.egg ? { egg: d.egg } : { coins: +d.coins || 0 }; });
   }
   function refreshConfigViews() {
     if (!me) return;
     if (s.phase === "shop") renderShop();
     else if (s.phase === "inv") renderInv();
-    else if (s.phase === "missions") renderMissions();
   }
-  function startConfig() {
-    if (configStarted || !ctx.db) return;
-    configStarted = true;
-    try {
-      ctx.db.doc("config/shop").onSnapshot(function (sn) { applyShop(sn.exists ? sn.data() : null); refreshConfigViews(); }, function () {});
-      ctx.db.doc("config/pets").onSnapshot(function (sn) { applyPets(sn.exists ? sn.data() : null); refreshConfigViews(); }, function () {});
-      ctx.db.collection("missions").onSnapshot(function (snap) {
-        var out = [];
-        snap.docs.forEach(function (x) {
-          var d = x.data() || {};
-          if (!/^[\w-]{1,40}$/.test(x.id) || d.active === false) return;
-          var type = ["games", "hatch", "score", "tries"].indexOf(d.type) !== -1 ? d.type : "";
-          var target = okNum(d.target, 1, 1000000000);
-          if (!type || target === null) return;
-          out.push({ id: x.id, title: typeof d.title === "string" && d.title ? d.title.slice(0, 60) : "Défi", desc: typeof d.desc === "string" ? d.desc.slice(0, 140) : "",
-            type: type, level: lvlById(d.level) ? d.level : "", target: Math.round(target), reward: Math.round(okNum(d.reward, 0, 1000000) || 0), order: +d.order || 0 });
-        });
-        out.sort(function (a, b) { return a.order - b.order || a.title.localeCompare(b.title); });
-        remoteMissions = out;
-        refreshConfigViews();
-      }, function () {}, true);
-    } catch (e) {}
+  function loadConfig() {
+    if (!FB || Date.now() - configAt < 60000) return;
+    configAt = Date.now();
+    FB.rpc("get_config").then(function (c) { applyConfig(c); refreshConfigViews(); }).catch(function () { configAt = 0; });
   }
-  function missionList() { return remoteMissions && remoteMissions.length ? remoteMissions : DEFAULT_MISSIONS; }
-  function missionText(m) {
-    if (m.desc) return m.desc;
-    var L = lvlById(m.level), where = L ? " en " + L.name : "";
-    if (m.type === "games") return "Joue " + fmtInt(m.target) + " partie" + (m.target > 1 ? "s" : "") + ".";
-    if (m.type === "hatch") return "Ouvre " + fmtInt(m.target) + " œuf" + (m.target > 1 ? "s" : "") + ".";
-    if (m.type === "score") return "Fais au moins " + fmtInt(m.target) + " points en une partie" + where + ".";
-    return "Trouve le nombre en " + fmtInt(m.target) + " essai" + (m.target > 1 ? "s" : "") + " ou moins" + where + ".";
-  }
-  function missionProgress(m) {
-    if (m.type === "games") return me.games;
-    if (m.type === "hatch") return me.hatched;
-    return me.mp[m.id] ? m.target : 0;
-  }
-  function missionsOnWin(L, attempts, total) {
-    var np = null;
-    missionList().forEach(function (m) {
-      if ((m.type !== "score" && m.type !== "tries") || me.mp[m.id] || (m.level && m.level !== L.id)) return;
-      if ((m.type === "score" && total >= m.target) || (m.type === "tries" && attempts <= m.target)) {
-        if (!np) np = JSON.parse(JSON.stringify(me.mp));
-        np[m.id] = 1;
-      }
-    });
-    return np;
-  }
-  function claimMission(id) {
-    var m = missionList().filter(function (x) { return x.id === id; })[0];
-    if (!m || me.mc[id] || missionProgress(m) < m.target) return;
-    var mc = JSON.parse(JSON.stringify(me.mc)); mc[id] = true;
-    persist({ coins: me.coins + m.reward, mc: mc });
-    $("coins").textContent = fmtInt(me.coins);
-    toast("+" + fmtInt(m.reward) + " pièces");
-    renderMissions();
-  }
-  function renderMissions() {
-    var box = $("mis-list");
-    box.innerHTML = "";
-    $("mis-note").textContent = "";
-    var list = missionList();
-    if (!list.length) { var em = document.createElement("div"); em.className = "empty-state"; em.textContent = "Aucun défi pour le moment."; box.appendChild(em); return; }
-    list.forEach(function (m) {
-      var prog = Math.min(m.target, missionProgress(m)), done = prog >= m.target, claimed = !!me.mc[m.id];
-      var card = document.createElement("div"); card.className = "mis" + (done ? " done" : "");
-      var t = document.createElement("div"); t.className = "mt"; t.textContent = m.title;
-      var d = document.createElement("div"); d.className = "md"; d.textContent = missionText(m);
-      var bar = document.createElement("div"); bar.className = "mbar";
-      var fill = document.createElement("i"); fill.style.width = (prog / m.target * 100) + "%"; bar.appendChild(fill);
-      var row = document.createElement("div"); row.className = "mrow";
-      var num = document.createElement("span"); num.className = "mnum"; num.textContent = fmtInt(prog) + " / " + fmtInt(m.target);
-      var btn = document.createElement("button"); btn.type = "button"; btn.className = "btn btn-main btn-sm";
-      btn.textContent = claimed ? "Récupéré" : "Récupérer +" + fmtInt(m.reward);
-      btn.disabled = claimed || !done;
-      btn.dataset.mid = m.id;
-      row.appendChild(num); row.appendChild(btn);
-      card.appendChild(t); card.appendChild(d); card.appendChild(bar); card.appendChild(row);
-      box.appendChild(card);
-    });
-  }
-  function goMissions() { stopTimer(); s.phase = "missions"; renderMissions(); show("missions"); }
-
   /* ---------- start-up ---------- */
   function timeout(ms) { return new Promise(function (r) { setTimeout(function () { r("timeout"); }, ms); }); }
 
@@ -2634,25 +3192,334 @@ button:disabled { cursor: default; }
   async function init() {
     await waitFb();
     FB = window.pmFb || null;
+    var appChk = FB ? checkApp() : Promise.resolve();
     if (FB) {
-      ctx.db = FB.db;
-      startConfig();
+      ctx.db = true;
+      loadConfig();
       try {
         var u = await Promise.race([FB.auth.ready(), timeout(10000)]);
         if (u === "timeout") ctx.slow = true;
         else if (u) {
-          ctx.uid = u.uid; ctx.canWrite = true;
-          var snap = await Promise.race([ctx.db.doc(playerPath()).get(), timeout(10000)]);
-          if (snap === "timeout") ctx.slow = true;
-          else if (snap.exists) ctx.existing = snap.data();
+          ctx.uid = u.id;
+          var res = await Promise.race([FB.rpc("login_session", { p_name: null }), timeout(10000)]);
+          if (res === "timeout") ctx.slow = true; else ctx.resume = res;
         }
-      } catch (e) { ctx.slow = true; }
+      } catch (e) {
+        if (e && e.code === "network") ctx.slow = true;
+        else { try { FB.auth.signOut(); } catch (e2) {} ctx.uid = null; }
+      }
     }
+    await appChk;                                   // outdated APK: stop here, the update screen is already shown
     ctx.ready = true;
+    if (appBlocked) return;
     if (s.phase !== "welcome") return;
-    if (ctx.existing && ctx.uid && accountsAvailable()) { loginAccount(ctx.existing); return; }
+    if (ctx.resume && ctx.uid && accountsAvailable()) { loginAccount(ctx.resume); return; }
     renderWelcome();
   }
+
+  /* ---------- casino (Friday-Sunday, server time) ----------
+     Everything is decided by the server (casino_play): schedule, bet checks, reels, coins and rewards.
+     The client only sends the bet and displays what the server answers. */
+  var CAS = { busy: false, min: 20, max: 500, hist: [], timers: [] };
+  function symSvg(n) {
+    if (n === "fraise") return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 44C12 38 8 26 10 18c3-5 9-6 14-4 5-2 11-1 14 4 2 8-2 20-14 26z" fill="#ff4d6d" stroke="#c91f45" stroke-width="2"/><g fill="#ffe8a3"><circle cx="18" cy="24" r="1.5"/><circle cx="26" cy="22" r="1.5"/><circle cx="31" cy="29" r="1.5"/><circle cx="22" cy="31" r="1.5"/><circle cx="26" cy="37" r="1.5"/><circle cx="16" cy="32" r="1.5"/></g><path d="M12 15c4-1 8 0 12 3 4-3 8-4 12-3-3-3-7-4-12-3-5-1-9 0-12 3z" fill="#3aa860" stroke="#237a43" stroke-width="1.5"/><path d="M24 12v-5" stroke="#237a43" stroke-width="3" stroke-linecap="round"/></svg>';
+    if (n === "oeuf") return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c9 0 16 14 16 25a16 16 0 0 1-32 0C8 18 15 4 24 4z" fill="#8b70e6" stroke="#5a44b5" stroke-width="2"/><g fill="#ffb3e0"><circle cx="18" cy="22" r="3.2"/><circle cx="29" cy="17" r="2.2"/><circle cx="30" cy="30" r="3.6"/><circle cx="19" cy="35" r="2.4"/></g><path d="M36 8l1.2 2.8 2.8 1.2-2.8 1.2L36 16l-1.2-2.8L32 12l2.8-1.2z" fill="#fff"/></svg>';
+    return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19" fill="#fff4c2" stroke="#e0a800" stroke-width="3"/><circle cx="24" cy="24" r="11" fill="none" stroke="#e0a800" stroke-width="3"/><path d="M15 15a13 13 0 0 1 9-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+  function crabSvg() {
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#b3281a" stroke-width="2.5" stroke-linecap="round" fill="none"><path d="M16 44l-8 6M20 48l-6 8M48 44l8 6M44 48l6 8"/></g><g fill="#ee5a43" stroke="#b3281a" stroke-width="2.5"><path d="M13 30C5 28 3 18 8 14c4 3 8 6 7 11z"/><path d="M51 30c8-2 10-12 5-16-4 3-8 6-7 11z"/><ellipse cx="32" cy="38" rx="21" ry="15"/></g><g stroke="#b3281a" stroke-width="2.5" stroke-linecap="round"><path d="M24 25v-5M40 25v-5"/></g><circle cx="24" cy="18" r="5" fill="#fff" stroke="#b3281a" stroke-width="2"/><circle cx="40" cy="18" r="5" fill="#fff" stroke="#b3281a" stroke-width="2"/><circle cx="25" cy="18.5" r="2.2" fill="#2a1730"/><circle cx="41" cy="18.5" r="2.2" fill="#2a1730"/><path d="M25 40q7 6 14 0" fill="none" stroke="#2a1730" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="38" r="3" fill="#ff9d8a" opacity=".7"/><circle cx="45" cy="38" r="3" fill="#ff9d8a" opacity=".7"/></svg>';
+  }
+  function miniSyms(arr) { return arr.map(function (n) { return '<span class="mini">' + symSvg(n) + "</span>"; }).join(""); }
+  function renderCasinoBtn() { $("open-casino").hidden = !(mode === "account" && me && me.casino); }
+  function pollCasino() {
+    if (mode !== "account" || !ctx.sid || document.hidden || CAS.busy) return;
+    srv("casino_status").then(function (r) { casinoApply(r); }).catch(function () {});
+  }
+  function casinoApply(r) {
+    if (!r || !me) return;
+    me.casino = !!r.open;
+    CAS.min = r.min || CAS.min; CAS.max = r.max || CAS.max;
+    if (typeof r.coins === "number") me.coins = r.coins;
+    if (Array.isArray(r.history)) CAS.hist = r.history;
+    renderCasinoBtn();
+    if (s.phase === "casino") {
+      if (!me.casino) { toast("Le casino est fermé. Reviens vendredi !"); goMenu(); return; }
+      renderCasino();
+    }
+  }
+  function goCasino() {
+    if (mode !== "account" || !me || !me.casino) return;
+    stopTimer(); s.phase = "casino";
+    $("crab-intro").innerHTML = crabSvg();
+    document.querySelectorAll("#cas-intro .sy").forEach(function (e) { e.innerHTML = miniSyms(e.dataset.sy.split(",")); });
+    $("cas-intro").hidden = false; $("cas-machine").hidden = true;
+    $("cas-msg").textContent = "";
+    var rs = $("cas-reels").children; for (var i = 0; i < 3; i++) rs[i].innerHTML = symSvg(["fraise", "oeuf", "piece"][i]);
+    var b = parseInt($("cas-bet").value, 10); if (!(b >= CAS.min && b <= CAS.max)) $("cas-bet").value = String(Math.max(CAS.min, Math.min(CAS.max, 50)));
+    renderCasino();
+    show("casino");
+    srv("casino_status").then(casinoApply).catch(function () {});
+  }
+  function casBet() { var v = parseInt(String($("cas-bet").value).replace(/\D/g, ""), 10); return isFinite(v) ? v : 0; }
+  function setBet(v) { v = Math.max(CAS.min, Math.min(CAS.max, Math.floor(v))); $("cas-bet").value = String(v); renderCasino(); }
+  function outText(h) {
+    return h.out === "double" ? "Doublé ! +" + fmtInt(h.net) : h.out === "egg" ? "Œuf cosmique ! −" + fmtInt(-h.net) : h.out === "refund" ? "Mise récupérée" : "Perdu −" + fmtInt(-h.net);
+  }
+  function renderCasino() {
+    $("cas-coins").textContent = fmtInt(me ? me.coins : 0);
+    var chips = $("cas-chips"); chips.innerHTML = "";
+    [CAS.min, 50, 100, 250, CAS.max].filter(function (v, i, a) { return v >= CAS.min && v <= CAS.max && a.indexOf(v) === i; }).forEach(function (v) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn btn-soft"; b.textContent = fmtInt(v); b.dataset.bet = v; chips.appendChild(b);
+    });
+    var bet = casBet(), okBet = bet >= CAS.min && bet <= CAS.max && me && bet <= me.coins;
+    $("cas-spin").disabled = CAS.busy || !okBet;
+    $("cas-spin").textContent = CAS.busy ? "…" : "Lancer (" + fmtInt(bet || 0) + ")";
+    if (!CAS.busy && !okBet && $("cas-msg").textContent === "") $("cas-msg").textContent = me && bet > me.coins ? "Tu n'as pas assez de pièces pour cette mise." : "Mise entre " + fmtInt(CAS.min) + " et " + fmtInt(CAS.max) + ".";
+    var box = $("cas-hist"); box.innerHTML = "";
+    if (!CAS.hist.length) { var em = document.createElement("div"); em.className = "empty-state"; em.textContent = "Aucune partie pour le moment."; box.appendChild(em); }
+    CAS.hist.forEach(function (h) {
+      var row = document.createElement("div"); row.className = "hr";
+      var l = document.createElement("div"); l.innerHTML = miniSyms(h.s);
+      var sm = document.createElement("small"); sm.textContent = "Mise " + fmtInt(h.bet) + " · " + outText(h); l.appendChild(sm);
+      var n = document.createElement("span"); n.className = "net " + (h.net > 0 ? "pos" : h.net < 0 ? "neg" : ""); n.textContent = (h.net > 0 ? "+" : h.net < 0 ? "−" : "") + fmtInt(Math.abs(h.net));
+      row.appendChild(l); row.appendChild(n); box.appendChild(row);
+    });
+  }
+  function casClearTimers() { CAS.timers.forEach(clearTimeout); CAS.timers = []; }
+  function casSpin() {
+    if (CAS.busy || mode !== "account") return;
+    var bet = casBet();
+    if (!(bet >= CAS.min && bet <= CAS.max) || bet > me.coins) { $("cas-msg").textContent = ""; renderCasino(); return; }
+    CAS.busy = true; casClearTimers();
+    $("cas-msg").textContent = ""; $("cas-msg").className = "cas-msg";
+    renderCasino();
+    var reels = $("cas-reels").children, names = ["fraise", "oeuf", "piece"], spinning = [true, true, true];
+    for (var i = 0; i < 3; i++) reels[i].classList.add("spin");
+    var tick = setInterval(function () { for (var k = 0; k < 3; k++) if (spinning[k]) reels[k].innerHTML = symSvg(names[Math.floor(Math.random() * 3)]); }, 90);
+    var t0 = Date.now();
+    srv("casino_play", { p_bet: bet }).then(function (res) {
+      var wait = Math.max(0, 1000 - (Date.now() - t0));
+      [0, 1, 2].forEach(function (k) {
+        CAS.timers.push(setTimeout(function () { spinning[k] = false; reels[k].classList.remove("spin"); reels[k].innerHTML = symSvg(res.s[k]); }, wait + k * 450));
+      });
+      CAS.timers.push(setTimeout(function () {
+        clearInterval(tick);
+        applyProfile(res.profile); me.casino = true;
+        CAS.hist = res.history || CAS.hist;
+        var m = $("cas-msg");
+        m.className = "cas-msg" + (res.out === "double" || res.out === "egg" ? " win" : "");
+        m.textContent = res.out === "double" ? "Trois fraises ! Mise doublée : +" + fmtInt(res.net) + " pièces"
+          : res.out === "egg" ? "Trois œufs cosmiques ! Tu gagnes un œuf cosmique (mise perdue)"
+          : res.out === "refund" ? "Trois pièces : tu récupères ta mise" : "Perdu : −" + fmtInt(-res.net) + " pièces";
+        CAS.busy = false;
+        renderCasino();
+        if (res.out === "egg") { var egg = eggById("cosmique"), pt = petById(res.pet); if (egg && pt) playHatch(egg, pt, res.count); }
+      }, wait + 3 * 450 + 150));
+    }).catch(function (e) {
+      clearInterval(tick); CAS.busy = false;
+      for (var k = 0; k < 3; k++) reels[k].classList.remove("spin");
+      var c = e && e.code;
+      if (c === "casino_closed") { me.casino = false; renderCasinoBtn(); toast("Le casino est fermé. Reviens vendredi !"); goMenu(); return; }
+      $("cas-msg").className = "cas-msg";
+      $("cas-msg").textContent = c === "not_enough_coins" ? "Tu n'as pas assez de pièces." : c === "too_fast" ? "Doucement ! Attends un instant entre deux parties."
+        : c === "bad_bet" ? "Mise invalide (" + fmtInt(CAS.min) + " à " + fmtInt(CAS.max) + ")." : "Impossible de jouer pour le moment. Vérifie ta connexion.";
+      pollCasino(); renderCasino();
+    });
+  }
+
+  /* ---------- app updates (APK only) and settings ----------
+     Server table cfg_app (Table Editor): latest_build / latest_name / min_build / notes / apk_url / discord_url.
+     APP_BUILD must be raised for every APK release. Below min_build the update is mandatory, below latest_build it is optional.
+     The web version (GitHub Pages) never runs this check. Offline or server down: never blocks, except a block already seen. */
+  var APP_BUILD = 1, APP_NAME = "1.0";
+  var appBlocked = false, appInfo = null, appCheckedAt = 0;
+  function isApk() { return !!(window.PMNative || (window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform())); }
+  function safeUrl(u) { return typeof u === "string" && /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; }
+  function cleanInfo(i) {
+    if (!i || typeof i !== "object") return null;
+    return { latest: Math.max(0, Math.floor(+i.latest || 0)), min: Math.max(0, Math.floor(+i.min || 0)), name: String(i.name || "").slice(0, 30),
+      notes: String(i.notes || "").slice(0, 1500), apk: safeUrl(i.apk), discord: safeUrl(i.discord) };
+  }
+  function showDiscordLinks() {
+    var u = appInfo && appInfo.discord;
+    [["set-discord", u], ["upd-discord", u]].forEach(function (x) { var a = $(x[0]); if (x[1]) a.href = x[1]; a.hidden = !x[1]; });
+  }
+  function showUpdate(force) {
+    var i = appInfo; if (!i) return;
+    $("upd-title").textContent = force ? "Mise à jour obligatoire" : "Mise à jour disponible";
+    $("upd-sub").textContent = (force ? "Cette version du jeu n'est plus prise en charge. " : "") + "Version " + (i.name || i.latest) + " disponible (tu as la " + APP_NAME + ").";
+    var n = $("upd-notes"); n.textContent = i.notes; n.hidden = !i.notes;
+    var go = $("upd-go"); if (i.apk) go.href = i.apk; go.hidden = !i.apk;
+    if (!i.apk) $("upd-sub").textContent += " Le lien de téléchargement arrive bientôt : regarde le Discord.";
+    $("upd-later").hidden = force;
+    showDiscordLinks();
+    $("updbox").hidden = false;
+  }
+  function applyAppInfo(raw) {
+    var i = cleanInfo(raw); if (!i) return;
+    appInfo = i;
+    try { localStorage.setItem("pm2.app", JSON.stringify(i)); } catch (e) {}
+    showDiscordLinks();
+    if (!isApk()) return;
+    if (i.min > APP_BUILD) { appBlocked = true; showUpdate(true); }
+    else {
+      appBlocked = false; $("updbox").hidden = true;
+      var seen = null; try { seen = sessionStorage.getItem("pm2.updseen"); } catch (e) {}
+      if (i.latest > APP_BUILD && seen !== String(i.latest)) showUpdate(false);
+    }
+  }
+  function checkApp() {
+    appCheckedAt = Date.now();
+    if (!FB) return Promise.resolve();
+    return Promise.race([FB.rpc("app_info").then(applyAppInfo), timeout(6000)]).catch(function () {});
+  }
+  (function cachedApp() {                          // a block seen once still applies when offline
+    var c = null; try { c = cleanInfo(JSON.parse(localStorage.getItem("pm2.app"))); } catch (e) {}
+    if (c) { appInfo = c; if (isApk() && c.min > APP_BUILD) { appBlocked = true; showUpdate(true); } }
+  })();
+
+  var soundOn = lsGet("pm2.sound") !== "0";
+  window.PMSound = { enabled: function () { return soundOn; } };   // for the future music: check PMSound.enabled()
+  function goSettings() {
+    stopTimer(); s.phase = "settings";
+    $("set-sound").checked = soundOn;
+    $("set-friends-row").hidden = mode !== "account";
+    $("set-friends").checked = !me || me.friendReq !== false;
+    $("set-note").textContent = "";
+    $("set-ver").textContent = "Version " + APP_NAME + " (build " + APP_BUILD + ")" + (isApk() ? "" : " · web");
+    showDiscordLinks();
+    show("settings");
+  }
+  function onSound() { soundOn = $("set-sound").checked; lsSet("pm2.sound", soundOn ? "1" : "0"); }
+  function onFriendReq() {
+    var box = $("set-friends"), want = box.checked;
+    $("set-note").textContent = "";
+    srv("set_settings", { p_friend_requests: want }).then(function (pr) { applyProfile(pr); $("set-note").textContent = want ? "Les demandes d'amis sont activées." : "Tu ne recevras plus de demandes d'amis."; })
+      .catch(function () { box.checked = !want; $("set-note").textContent = "Impossible de changer ce réglage pour le moment."; });
+  }
+
+  /* ---------- tutorial (strawberry guide) ----------
+     Status is checked BEFORE anything is shown:
+       pm2.tuto = "1"  -> already done on this device
+       guest data, a saved login session or a login lock exist -> existing player: never show it, remember it
+       account profile (server column tuto_done) -> synced at login; false forces the tutorial once
+     A reinstall / cleared data on a device shows it once, with a Skip button. */
+  var TUTO_NAME = "Fraisy", BOT_NAME = "Kiwi";
+  var tu = null;     // { step, replay }
+  var TUTO_STEPS = [
+    { mood: "win", text: "Salut ! Moi, c'est " + TUTO_NAME + ", ta fraise guide. Je t'explique le jeu en deux minutes.", btn: "Suivant" },
+    { mood: "idle", text: "C'est simple : un nombre secret est caché. Tu proposes un nombre, et je réponds « Plus » ou « Moins ».", btn: "Suivant" },
+    { mood: "up", text: "« Plus » : le secret est plus grand que ton nombre. « Moins » : il est plus petit. Trouve-le avec le moins d'essais possible, et vite !", btn: "Suivant" },
+    { mood: "idle", text: "En duel, tu affrontes un adversaire sur le même nombre : le premier qui le trouve gagne. Essayons un duel facile contre " + BOT_NAME + " (de 1 à 10).", btn: "Duel facile", game: "easy" },
+    { mood: "win", text: "Bravo, tu as gagné ! Maintenant, un duel en difficulté normale : le nombre est entre 1 et 100. Astuce : coupe toujours l'intervalle en deux.", btn: "Duel normal", game: "normal" },
+    { mood: "win", text: "Tu as compris le fonctionnement du jeu ! Tu peux maintenant jouer. Crée un compte pour garder tes points, ou connecte-toi.", btn: "C'est parti !", end: true }
+  ];
+  function hasAuthToken() {
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^sb-.*-auth-token/.test(k)) return true; } } catch (e) {}
+    return false;
+  }
+  function tutoNeeded() {
+    if (lsGet("pm2.tuto") === "1") return false;
+    if (lsGet("pm2.guest") || lsGet("pm2.lock") || hasAuthToken()) { lsSet("pm2.tuto", "1"); return false; }   // existing player
+    return true;
+  }
+  function startTuto(replay) {
+    stopTimer();
+    tu = { step: 0, replay: !!replay };
+    s.phase = "tuto"; s.tg = false;
+    renderTuto();
+    show("tuto");
+  }
+  function renderTuto() {
+    var st = TUTO_STEPS[tu.step];
+    var dots = $("tuto-dots"); dots.innerHTML = "";
+    for (var i = 0; i < TUTO_STEPS.length; i++) { var d = document.createElement("i"); if (i <= tu.step) d.className = "on"; dots.appendChild(d); }
+    setMascot("mascot-tuto", st.mood);
+    $("tuto-name").textContent = TUTO_NAME;
+    $("tuto-text").textContent = st.text;
+    $("tuto-next").textContent = st.btn;
+    $("tuto-skip").hidden = !!st.end;
+    s.phase = "tuto";
+  }
+  function tutoNext() {
+    if (!tu) return;
+    var st = TUTO_STEPS[tu.step];
+    if (st.end) { finishTuto(); return; }
+    if (st.game) { startTutoGame(st.game); return; }
+    tu.step++; renderTuto(); pop($("tuto-text"));
+  }
+  function finishTuto() {
+    lsSet("pm2.tuto", "1");
+    tu = null; s.tg = false; s.phase = "welcome";
+    $("coach").hidden = true; $("coach-end").hidden = true;
+    stopTimer();
+    if (mode === "account") { srv("finish_tuto").catch(function () {}); goMenu(); }
+    else goWelcome();
+  }
+  function startTutoGame(id) {
+    var L = lvlById(id);
+    s.tg = true; s.gid = null; s.busy = false; s.duel = null; s.duelEnded = false;
+    s.L = L; s.lvl = L.id;
+    s.secret = 1 + Math.floor(Math.random() * L.max);
+    s.low = 1; s.high = L.max; s.guesses = []; s.entry = "";
+    tu.bl = 1; tu.bh = L.max;                      // the bot's own range
+    s.phase = "playing";
+    s.t0 = performance.now(); s.elapsed = 0;
+    stopTimer(); s.timer = setInterval(tick, 100);
+    show("game");
+    $("lvl-pill").textContent = "Essai · " + L.name;
+    $("play").hidden = false; $("result").hidden = true; $("coach-end").hidden = true;
+    $("coach").hidden = false;
+    setMascot("mascot-coach", "idle");
+    $("coach-text").textContent = "Entre un nombre de 1 à " + L.max + ". Astuce : essaie le milieu (" + Math.ceil(L.max / 2) + ").";
+    var w = $("word"); w.className = "word"; w.textContent = "?";
+    setSub(introText(L));
+    setMascot("mascot-game", "idle");
+    $("range-box").hidden = false;
+    $("max-label").textContent = fmtInt(L.max);
+    renderEntry(); renderRange(); renderHistory();
+    $("tries").textContent = "0";
+    $("time").textContent = fmtTime(0);
+  }
+  /* the bot plays after each of your guesses, but never finds the number before you */
+  function tutoBot(n, dir) {
+    var msg = (dir === "plus" ? "Plus grand que " : "Plus petit que ") + n + ". ";
+    var cand = [];
+    for (var v = tu.bl; v <= tu.bh; v++) if (v !== s.secret) cand.push(v);
+    if (cand.length) {
+      var g = cand[Math.floor(Math.random() * cand.length)];
+      if (g < s.secret) { tu.bl = g + 1; msg += BOT_NAME + " essaie " + g + " : c'est plus."; }
+      else { tu.bh = g - 1; msg += BOT_NAME + " essaie " + g + " : c'est moins."; }
+    } else msg += BOT_NAME + " hésite…";
+    setMascot("mascot-coach", dir === "plus" ? "up" : "down");
+    $("coach-text").textContent = msg + " À toi !";
+  }
+  function tutoWin() {
+    stopTimer();
+    s.elapsed = (performance.now() - s.t0) / 1000;
+    s.phase = "won";
+    var w = $("word"); w.className = "word win"; w.textContent = fmtInt(s.secret); pop(w);
+    setSub("Trouvé !");
+    setMascot("mascot-game", "win"); setMascot("mascot-coach", "win");
+    $("tries").textContent = String(s.guesses.length);
+    $("time").textContent = fmtTime(s.elapsed);
+    s.low = s.secret; s.high = s.secret;
+    renderRange(); renderHistory();
+    var a = s.guesses.length;
+    $("coach-text").textContent = "Tu as trouvé en " + a + (a > 1 ? " essais" : " essai") + " : tu bats " + BOT_NAME + " !";
+    $("play").hidden = true;
+    $("coach-end").hidden = false;
+    $("coach-next").textContent = "Suite";
+    tu.step = tu.step + 1;                          // 3 -> 4 (normal duel), 4 -> 5 (end)
+  }
+
+  /* Android app: the game is drawn edge to edge; the app tells us how tall the camera notch is */
+  function readNativeInsets() {
+    try { if (window.PMNative && window.PMNative.safeTop) document.documentElement.style.setProperty("--sat", window.PMNative.safeTop() + "px"); } catch (e) {}
+  }
+  readNativeInsets();
+  window.addEventListener("resize", readNativeInsets);
+  window.addEventListener("focus", readNativeInsets);
 
   /* ---------- events ---------- */
   document.addEventListener("keydown", function (e) {
@@ -2673,7 +3540,7 @@ button:disabled { cursor: default; }
   $("open-board").addEventListener("click", goBoard);
   $("board-tabs").addEventListener("click", function (e) {
     var b = e.target.closest("button");
-    if (b && b.dataset.lvl) { boardLvl = b.dataset.lvl; renderBoard(); }
+    if (b && b.dataset.lvl) { boardLvl = b.dataset.lvl; loadBoard(boardLvl); renderBoard(); }
   });
   $("open-shop").addEventListener("click", goShop);
   $("open-inv").addEventListener("click", goInv);
@@ -2695,16 +3562,11 @@ button:disabled { cursor: default; }
     if (e.target && e.target.id === "inv-only") { invOnly = e.target.checked; renderInv(); }
   });
   $("logout").addEventListener("click", logout);
-  (function () {
-    var de = document.documentElement, fs = $("fs");
-    if (!(de.requestFullscreen && document.fullscreenEnabled)) return;
-    fs.hidden = false;
-    fs.addEventListener("click", function () {
-      if (document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen({ navigationUI: "hide" }).catch(function () {});
-    });
-    document.addEventListener("fullscreenchange", function () { fs.textContent = document.fullscreenElement ? "Quitter le plein écran" : "Plein écran"; });
-  })();
   $("w-guest").addEventListener("click", playAsGuest);
+  $("w-tuto").addEventListener("click", function () { startTuto(true); });
+  $("tuto-next").addEventListener("click", tutoNext);
+  $("tuto-skip").addEventListener("click", finishTuto);
+  $("coach-next").addEventListener("click", function () { $("coach-end").hidden = true; $("coach").hidden = true; s.tg = false; renderTuto(); show("tuto"); pop($("tuto-text")); });
 
   $("w-create").addEventListener("click", function () {
     if (!ctx.ready || !accountsAvailable()) return;
@@ -2736,29 +3598,51 @@ button:disabled { cursor: default; }
   $("delform").addEventListener("submit", onDelete);
 
   var menuBtns = document.querySelectorAll("[data-menu]");
-  for (var mi = 0; mi < menuBtns.length; mi++) menuBtns[mi].addEventListener("click", goMenu);
+  for (var mi = 0; mi < menuBtns.length; mi++) menuBtns[mi].addEventListener("click", function () {
+      if (s.tg) { stopTimer(); s.tg = false; $("coach").hidden = true; $("coach-end").hidden = true; if (s.phase === "playing") tu.step = Math.max(3, tu.step); renderTuto(); show("tuto"); return; }   // back to the guide
+      if (confirmLeave()) goMenu();
+    });
 
   $("daily-btn").addEventListener("click", function () {
     if ($("daily-btn").dataset.state === "close") closeDaily(); else claimDaily();
   });
   $("open-duel").addEventListener("click", goDuel);
-  $("open-missions").addEventListener("click", goMissions);
-  $("mis-list").addEventListener("click", function (e) {
-    var b = e.target.closest("button");
-    if (b && b.dataset.mid && !b.disabled) claimMission(b.dataset.mid);
-  });
   $("duel-lvls").addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
   });
-  $("duel-create").addEventListener("click", createDuel);
-  $("duel-join-form").addEventListener("submit", joinDuel);
-  $("lobby-start").addEventListener("click", startDuelAsHost);
-  $("lobby-copy").addEventListener("click", function () { if (duelCur) copyCode(duelCur.code); });
-  $("lobby-leave").addEventListener("click", goDuel);
+  $("open-settings").addEventListener("click", goSettings);
+  $("open-casino").addEventListener("click", goCasino);
+  $("cas-ok").addEventListener("click", function () { $("cas-intro").hidden = true; $("cas-machine").hidden = false; renderCasino(); });
+  $("cas-rules").addEventListener("click", function () { $("cas-intro").hidden = false; $("cas-machine").hidden = true; });
+  $("cas-spin").addEventListener("click", casSpin);
+  $("cas-minus").addEventListener("click", function () { setBet(casBet() - (casBet() > 100 ? 50 : 10)); });
+  $("cas-plus").addEventListener("click", function () { setBet(casBet() + (casBet() >= 100 ? 50 : 10)); });
+  $("cas-bet").addEventListener("input", function () { var v = this.value.replace(/\D/g, "").slice(0, 7); if (v !== this.value) this.value = v; $("cas-msg").textContent = ""; renderCasino(); });
+  $("cas-bet").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); casSpin(); } });
+  $("cas-chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b && b.dataset.bet) { $("cas-msg").textContent = ""; setBet(+b.dataset.bet); } });
+  $("set-sound").addEventListener("change", onSound);
+  $("set-friends").addEventListener("change", onFriendReq);
+  $("upd-later").addEventListener("click", function () { $("updbox").hidden = true; try { sessionStorage.setItem("pm2.updseen", String(appInfo && appInfo.latest)); } catch (e) {} });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && isApk() && FB && Date.now() - appCheckedAt > 600000) checkApp(); });
+  $("open-friends").addEventListener("click", goFriends);
+  $("open-clubs").addEventListener("click", goClub);
+  $("cl-create").addEventListener("submit", onClubCreate);
+  $("cl-set").addEventListener("submit", onClubSave);
+  $("cl-cmode").addEventListener("click", function (e) { var b = e.target.closest(".tab"); if (!b) return; clMode = b.dataset.m; setTabs($("cl-cmode"), clMode); $("cl-chelp").textContent = modeHelp(clMode); });
+  $("cl-smode").addEventListener("click", function (e) { var b = e.target.closest(".tab"); if (!b) return; clSet = b.dataset.m; setTabs($("cl-smode"), clSet); });
+  $("cl-searchform").addEventListener("submit", function (e) { e.preventDefault(); clQuery = $("cl-search").value.replace(/\s+/g, " ").trim(); loadClubList(); });
+  $("cl-leave").addEventListener("click", function () { if (clAsk("Quitter le club ?")) clAct("club_leave", {}); });
+  $("cl-disband").addEventListener("click", function () { if (clAsk("Dissoudre le club ? Tous les membres seront retirés et le club sera supprimé.")) clAct("club_disband", {}); });
+  $("fr-form").addEventListener("submit", onFriendAdd);
+  $("fr-copy").addEventListener("click", copyFriendCode);
+  $("duel-casual").addEventListener("click", function () { startSearch("casual"); });
+  $("duel-ranked").addEventListener("click", function () { startSearch("ranked"); });
+  $("lobby-leave").addEventListener("click", cancelSearch);
 
   buildPad();
   goWelcome();
+  if (tutoNeeded()) startTuto(false);   // before anything is drawn: no flash of the welcome screen
   init();
 })();
 </script>

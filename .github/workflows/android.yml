@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
     branches: [main, master]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
@@ -26,8 +28,13 @@ jobs:
           cat > android/app/src/main/java/com/erwan/plusoumoins/MainActivity.java <<'JAVA'
           package com.erwan.plusoumoins;
 
+          import android.os.Build;
           import android.os.Bundle;
           import android.view.Window;
+          import android.view.WindowManager;
+          import android.webkit.JavascriptInterface;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
           import androidx.core.view.WindowCompat;
           import androidx.core.view.WindowInsetsCompat;
           import androidx.core.view.WindowInsetsControllerCompat;
@@ -37,6 +44,24 @@ jobs:
             @Override
             public void onCreate(Bundle savedInstanceState) {
               super.onCreate(savedInstanceState);
+              Window w = getWindow();
+              // Draw behind the status bar and the camera notch: no grey band at the top
+              WindowCompat.setDecorFitsSystemWindows(w, false);
+              if (Build.VERSION.SDK_INT >= 28) {
+                WindowManager.LayoutParams lp = w.getAttributes();
+                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                w.setAttributes(lp);
+              }
+              // Lets the page know how tall the camera notch is, so nothing is hidden under it
+              getBridge().getWebView().addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public int safeTop() {
+                  WindowInsetsCompat i = ViewCompat.getRootWindowInsets(getWindow().getDecorView());
+                  if (i == null) return 0;
+                  Insets c = i.getInsets(WindowInsetsCompat.Type.displayCutout());
+                  return Math.round(c.top / getResources().getDisplayMetrics().density);
+                }
+              }, "PMNative");
               hideBars();
             }
 
@@ -67,7 +92,8 @@ jobs:
         with:
           name: plus-ou-moins-apk
           path: PlusOuMoins.apk
-      - name: Publish the release
+      - name: Publish the release (main branch only)
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
