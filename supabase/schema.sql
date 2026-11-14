@@ -84,6 +84,8 @@ alter table profiles add column if not exists duel_wins int not null default 0;
 -- Les comptes existants gardent leur identifiant actuel (copié depuis auth.users).
 alter table profiles add column if not exists login_email text;
 alter table profiles add column if not exists friend_code text;
+-- réglage joueur : accepter les demandes d'amis (false = refusées)
+alter table profiles add column if not exists friend_requests boolean not null default true;
 -- tutoriel : true = ne pas le montrer (comptes existants = true ; mets false pour forcer le tutoriel au prochain login)
 alter table profiles add column if not exists tuto_done boolean not null default true;
 alter table profiles add column if not exists duel_losses int not null default 0;
@@ -268,7 +270,7 @@ set search_path = public as $$
   select jsonb_build_object(
     'name', name, 'best', best, 'bestLvl', best_lvl,
     'b_easy', b_easy, 'b_normal', b_normal, 'b_hard', b_hard, 'b_nightmare', b_nightmare,
-    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
+    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'friendReq', friend_requests, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
     'today', _today()::text)
@@ -590,6 +592,9 @@ begin
      or (select count(*) from friendships where status = 'accepted' and v_uid in (a, b)) >= _friend_cap()
      or (select count(*) from friendships where b = v_to and status = 'pending') >= _friend_pending_cap() * 5 then
     return jsonb_build_object('status', 'full');
+  end if;
+  if not (select friend_requests from profiles where id = v_to) then
+    return jsonb_build_object('status', 'closed', 'name', v_name);       -- ce joueur a désactivé les demandes d'amis
   end if;
   insert into friendships (a, b) values (v_uid, v_to);
   return jsonb_build_object('status', 'sent', 'name', v_name);
@@ -1400,6 +1405,38 @@ begin
     'start_in', greatest(0, round(extract(epoch from (d.started_at - now())) * 1000))::int);
 end $$;
 
+-- ---------- Réglages joueur ----------
+create or replace function set_settings(p_sid text, p_friend_requests boolean) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  if p_friend_requests is not null then update profiles set friend_requests = p_friend_requests where id = v_uid; end if;
+  return _profile_json(v_uid);
+end $$;
+
+-- ---------- Mises à jour de l'APK (modifiable dans Table Editor > cfg_app, sans republier) ----------
+create table if not exists cfg_app (
+  id int primary key default 1 check (id = 1),          -- une seule ligne
+  latest_build int not null default 1,                  -- numéro de build de la dernière version
+  latest_name text not null default '1.0',              -- nom affiché (ex. 1.2)
+  min_build int not null default 0,                     -- en dessous : mise à jour OBLIGATOIRE (0 = jamais)
+  notes text not null default '',                       -- notes de mise à jour
+  apk_url text not null default '',                     -- lien https de l'APK (GitHub Releases...)
+  discord_url text not null default ''                  -- lien https du Discord
+);
+insert into cfg_app (id) values (1) on conflict (id) do nothing;
+alter table cfg_app enable row level security;
+drop policy if exists "lecture publique" on cfg_app;
+create policy "lecture publique" on cfg_app for select using (true);
+revoke insert, update, delete on cfg_app from anon, authenticated;
+grant select on cfg_app to anon, authenticated;
+
+create or replace function app_info() returns jsonb language sql stable security definer
+set search_path = public as $$
+  select jsonb_build_object('latest', latest_build, 'name', latest_name, 'min', min_build,
+    'notes', notes, 'apk', apk_url, 'discord', discord_url) from cfg_app where id = 1
+$$;
+
 -- ---------- Droits : seules les fonctions publiques sont appelables ----------
 do $$
 declare r record;
@@ -1414,7 +1451,9 @@ begin
   grant execute on function get_config() to anon;
   grant execute on function resolve_login(text) to anon;
   grant execute on function check_name(text) to anon;
+  grant execute on function app_info() to anon;
 end $$;
+
 -- ---------- Nettoyage : le mode Défis (missions) a été supprimé ----------
 drop function if exists claim_mission(text, text);
 drop table if exists cfg_missions;

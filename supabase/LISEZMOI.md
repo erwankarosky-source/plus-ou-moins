@@ -130,3 +130,23 @@ Facile (1–10), un duel Normal (1–100), et la fraise conclut qu'il a compris 
 Le mode « Défis » (missions à récompense) a été retiré : bouton du menu, écran, code client, `claim_mission`,
 table `cfg_missions` et colonnes `profiles.mp` / `profiles.mc`. Recolle `schema.sql` : il fait le nettoyage tout seul
 (`drop ... if exists`). Les pièces déjà gagnées grâce aux défis restent chez les joueurs ; seul l'historique de progression des défis disparaît.
+
+## Mises à jour de l'APK et Paramètres (nouveau)
+
+**Mises à jour (APK uniquement, pas la version web)** : tout se règle dans Supabase > Table Editor > table `cfg_app` (une seule ligne), sans republier :
+
+| colonne | rôle |
+|---|---|
+| `latest_build` / `latest_name` | dernière version (numéro de build, nom affiché ex. 1.2) |
+| `min_build` | version minimale autorisée : un APK dont le build est **inférieur** voit un écran « Mise à jour obligatoire » qu'on ne peut pas fermer (0 = jamais obligatoire) |
+| `notes` | notes de mise à jour affichées |
+| `apk_url` | lien `https://` de l'APK (GitHub Releases) : bouton « Mise à jour » |
+| `discord_url` | lien `https://` du Discord (bouton dans l'écran de mise à jour et dans Paramètres) |
+
+- Si `latest_build` est supérieur au build installé (mais ≥ `min_build`), l'écran est proposé avec « Plus tard » (une fois par lancement).
+- **Chaque APK a un numéro de build** : `APP_BUILD` (et `APP_NAME`) en haut du bloc « app updates » de `www/index.html`. Augmente-le à chaque nouvelle version publiée, puis mets le même nombre dans `latest_build` quand l'APK est en ligne.
+- Sans connexion ou si le serveur ne répond pas, le jeu ne bloque pas (sauf un blocage déjà vu, mémorisé). Seuls les liens `https://` sont acceptés.
+- Les APK installés **avant** cette fonction ne vérifient rien : seuls les APK qui la contiennent peuvent être bloqués.
+- Exemple : `update cfg_app set latest_build = 2, latest_name = '1.1', min_build = 2, notes = 'Duels classés', apk_url = 'https://github.com/...', discord_url = 'https://discord.gg/...';`
+
+**Paramètres** : engrenage en haut à gauche du menu → Discord, son (réglage mémorisé, `PMSound.enabled()` pour la future musique), demandes d'amis (colonne `profiles.friend_requests`, refusées côté serveur avec le statut `closed`), Se déconnecter, Supprimer mon compte. Recolle `schema.sql` (colonne, `set_settings`, `cfg_app`, `app_info`).

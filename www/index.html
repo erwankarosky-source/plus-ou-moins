@@ -282,12 +282,13 @@ button:disabled { cursor: default; }
 .plr .tag { background: var(--yellow); color: var(--yellow-ink); border-radius: 999px; padding: 0 9px; font-size: 0.8rem; font-weight: 600; }
 .plr .nm { overflow-wrap: anywhere; min-width: 0; }
 .plist2 { display: grid; gap: 8px; }
-.fbtn { position: absolute; top: 0; right: 0; z-index: 2; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
+.fbtn { position: absolute; top: 0; right: 0; z-index: 2; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
 .fbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--line); }
-.fbtn svg { width: 20px; height: 20px; }
+.fbtn svg { width: 24px; height: 24px; }
+.fbtn.lft { right: auto; left: 0; }
 .fbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); font: 700 0.7rem/18px var(--font-body); text-align: center; }
 #menu { position: relative; }
-.fbtn.second { top: 48px; }
+.fbtn.second { top: 54px; }
 .tabs.two { grid-template-columns: repeat(2, 1fr); }
 .fwrap { display: grid; gap: 6px; }
 .fwrap > .frow.tap { cursor: pointer; }
@@ -440,6 +441,16 @@ button:disabled { cursor: default; }
 .toast { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 40; }
 .toast span { background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: 0.92rem; text-align: center; }
 
+.setlist { display: grid; gap: 10px; }
+.setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 8px 14px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; font-weight: 700; cursor: pointer; }
+.setrow small { display: block; font-weight: 600; color: var(--muted); font-size: 0.8rem; }
+.setrow input { width: 26px; height: 26px; accent-color: var(--accent); flex: none; }
+.setrow[hidden] { display: none; }
+a.btn { text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.upd-notes { max-height: 32vh; overflow-y: auto; white-space: pre-wrap; text-align: left; width: 100%; background: var(--bg); border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; font-size: 0.88rem; overflow-wrap: anywhere; }
+#updbox { z-index: 60; }
+.ver { text-align: center; color: var(--muted); font-size: 0.8rem; }
+
 /* tutorial: the strawberry guide */
 .tuto-dots { display: flex; gap: 8px; justify-content: center; padding-top: 4px; }
 .tuto-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
@@ -567,6 +578,9 @@ button:disabled { cursor: default; }
   </section>
 
   <section class="view" id="menu" hidden>
+    <button class="fbtn lft" id="open-settings" type="button" aria-label="Paramètres">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
     <button class="fbtn" id="open-friends" type="button" aria-label="Amis" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>
       <span class="fbadge" id="friend-badge" hidden>0</span>
@@ -601,8 +615,22 @@ button:disabled { cursor: default; }
         Duels
       </button>
     </div>
+  </section>
+
+  <section class="view" id="settings" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+    </div>
+    <h2 class="title">Paramètres</h2>
+    <div class="setlist">
+      <a class="btn btn-soft" id="set-discord" target="_blank" rel="noopener noreferrer" hidden>Rejoindre le Discord</a>
+      <label class="setrow" for="set-sound"><span>Son et musique<small>Prêt pour la future musique</small></span><input type="checkbox" id="set-sound"></label>
+      <label class="setrow" for="set-friends" id="set-friends-row" hidden><span>Demandes d'amis<small>Décoche pour ne plus en recevoir</small></span><input type="checkbox" id="set-friends"></label>
+    </div>
+    <p class="note" id="set-note" aria-live="polite"></p>
     <button class="linkbtn" id="logout" type="button">Se déconnecter</button>
     <button class="linkbtn danger" id="open-del" type="button">Supprimer mon compte</button>
+    <p class="ver" id="set-ver"></p>
   </section>
 
   <section class="view" id="levels" hidden>
@@ -854,6 +882,17 @@ button:disabled { cursor: default; }
   </div>
 </div>
 
+<div class="hatch" id="updbox" hidden role="dialog" aria-modal="true" aria-labelledby="upd-title">
+  <div class="hatch-box">
+    <b class="dbig" id="upd-title">Mise à jour</b>
+    <p class="dtxt" id="upd-sub"></p>
+    <div class="upd-notes" id="upd-notes" hidden></div>
+    <a class="btn btn-main" id="upd-go" target="_blank" rel="noopener noreferrer" style="width:100%">Mise à jour</a>
+    <a class="btn btn-soft" id="upd-discord" target="_blank" rel="noopener noreferrer" style="width:100%" hidden>Infos sur le Discord</a>
+    <button class="linkbtn" id="upd-later" type="button">Plus tard</button>
+  </div>
+</div>
+
 <div class="hatch" id="dailybox" hidden role="dialog" aria-modal="true" aria-label="Cadeau du jour">
   <div class="hatch-box">
     <b class="dbig" id="daily-title">Cadeau du jour</b>
@@ -934,7 +973,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "friends", "club", "tuto"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "friends", "club", "tuto", "settings"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -1044,6 +1083,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     b.hatched = Math.max(0, Math.floor(+d.hatched || 0));
     var dd = d.daily && typeof d.daily === "object" ? d.daily : {};
     b.daily = { day: typeof dd.day === "string" ? dd.day : "", streak: Math.max(0, Math.floor(+dd.streak || 0)) };
+    b.friendReq = d.friendReq !== false;
     b.friendCode = typeof d.friendCode === "string" && /^[A-Z0-9]{8}$/.test(d.friendCode) ? d.friendCode : "";
     b.trophies = Math.max(0, Math.floor(+d.trophies || 0));
     b.duelWins = Math.max(0, Math.floor(+d.duelWins || 0));
@@ -2745,6 +2785,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
         self: "C'est ton propre code ! Donne-le à un ami.",
         friends: "Vous êtes déjà amis" + (nm ? " avec " + nm : "") + ".",
         pending: "Tu as déjà envoyé une demande" + (nm ? " à " + nm : "") + ".",
+        closed: (nm || "Ce joueur") + " n'accepte pas les demandes d'amis.",
         full: "Impossible pour le moment : liste d'amis ou de demandes pleine.",
         rate: "Trop d'essais avec de mauvais codes. Réessaie dans quelques minutes."
       }[st] || "Demande impossible pour le moment.";
@@ -3075,6 +3116,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   async function init() {
     await waitFb();
     FB = window.pmFb || null;
+    var appChk = FB ? checkApp() : Promise.resolve();
     if (FB) {
       ctx.db = true;
       loadConfig();
@@ -3091,10 +3133,83 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
         else { try { FB.auth.signOut(); } catch (e2) {} ctx.uid = null; }
       }
     }
+    await appChk;                                   // outdated APK: stop here, the update screen is already shown
     ctx.ready = true;
+    if (appBlocked) return;
     if (s.phase !== "welcome") return;
     if (ctx.resume && ctx.uid && accountsAvailable()) { loginAccount(ctx.resume); return; }
     renderWelcome();
+  }
+
+  /* ---------- app updates (APK only) and settings ----------
+     Server table cfg_app (Table Editor): latest_build / latest_name / min_build / notes / apk_url / discord_url.
+     APP_BUILD must be raised for every APK release. Below min_build the update is mandatory, below latest_build it is optional.
+     The web version (GitHub Pages) never runs this check. Offline or server down: never blocks, except a block already seen. */
+  var APP_BUILD = 1, APP_NAME = "1.0";
+  var appBlocked = false, appInfo = null, appCheckedAt = 0;
+  function isApk() { return !!(window.PMNative || (window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform())); }
+  function safeUrl(u) { return typeof u === "string" && /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; }
+  function cleanInfo(i) {
+    if (!i || typeof i !== "object") return null;
+    return { latest: Math.max(0, Math.floor(+i.latest || 0)), min: Math.max(0, Math.floor(+i.min || 0)), name: String(i.name || "").slice(0, 30),
+      notes: String(i.notes || "").slice(0, 1500), apk: safeUrl(i.apk), discord: safeUrl(i.discord) };
+  }
+  function showDiscordLinks() {
+    var u = appInfo && appInfo.discord;
+    [["set-discord", u], ["upd-discord", u]].forEach(function (x) { var a = $(x[0]); if (x[1]) a.href = x[1]; a.hidden = !x[1]; });
+  }
+  function showUpdate(force) {
+    var i = appInfo; if (!i) return;
+    $("upd-title").textContent = force ? "Mise à jour obligatoire" : "Mise à jour disponible";
+    $("upd-sub").textContent = (force ? "Cette version du jeu n'est plus prise en charge. " : "") + "Version " + (i.name || i.latest) + " disponible (tu as la " + APP_NAME + ").";
+    var n = $("upd-notes"); n.textContent = i.notes; n.hidden = !i.notes;
+    var go = $("upd-go"); if (i.apk) go.href = i.apk; go.hidden = !i.apk;
+    if (!i.apk) $("upd-sub").textContent += " Le lien de téléchargement arrive bientôt : regarde le Discord.";
+    $("upd-later").hidden = force;
+    showDiscordLinks();
+    $("updbox").hidden = false;
+  }
+  function applyAppInfo(raw) {
+    var i = cleanInfo(raw); if (!i) return;
+    appInfo = i;
+    try { localStorage.setItem("pm2.app", JSON.stringify(i)); } catch (e) {}
+    showDiscordLinks();
+    if (!isApk()) return;
+    if (i.min > APP_BUILD) { appBlocked = true; showUpdate(true); }
+    else {
+      appBlocked = false; $("updbox").hidden = true;
+      var seen = null; try { seen = sessionStorage.getItem("pm2.updseen"); } catch (e) {}
+      if (i.latest > APP_BUILD && seen !== String(i.latest)) showUpdate(false);
+    }
+  }
+  function checkApp() {
+    appCheckedAt = Date.now();
+    if (!FB) return Promise.resolve();
+    return Promise.race([FB.rpc("app_info").then(applyAppInfo), timeout(6000)]).catch(function () {});
+  }
+  (function cachedApp() {                          // a block seen once still applies when offline
+    var c = null; try { c = cleanInfo(JSON.parse(localStorage.getItem("pm2.app"))); } catch (e) {}
+    if (c) { appInfo = c; if (isApk() && c.min > APP_BUILD) { appBlocked = true; showUpdate(true); } }
+  })();
+
+  var soundOn = lsGet("pm2.sound") !== "0";
+  window.PMSound = { enabled: function () { return soundOn; } };   // for the future music: check PMSound.enabled()
+  function goSettings() {
+    stopTimer(); s.phase = "settings";
+    $("set-sound").checked = soundOn;
+    $("set-friends-row").hidden = mode !== "account";
+    $("set-friends").checked = !me || me.friendReq !== false;
+    $("set-note").textContent = "";
+    $("set-ver").textContent = "Version " + APP_NAME + " (build " + APP_BUILD + ")" + (isApk() ? "" : " · web");
+    showDiscordLinks();
+    show("settings");
+  }
+  function onSound() { soundOn = $("set-sound").checked; lsSet("pm2.sound", soundOn ? "1" : "0"); }
+  function onFriendReq() {
+    var box = $("set-friends"), want = box.checked;
+    $("set-note").textContent = "";
+    srv("set_settings", { p_friend_requests: want }).then(function (pr) { applyProfile(pr); $("set-note").textContent = want ? "Les demandes d'amis sont activées." : "Tu ne recevras plus de demandes d'amis."; })
+      .catch(function () { box.checked = !want; $("set-note").textContent = "Impossible de changer ce réglage pour le moment."; });
   }
 
   /* ---------- tutorial (strawberry guide) ----------
@@ -3310,6 +3425,11 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     var b = e.target.closest("button");
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
   });
+  $("open-settings").addEventListener("click", goSettings);
+  $("set-sound").addEventListener("change", onSound);
+  $("set-friends").addEventListener("change", onFriendReq);
+  $("upd-later").addEventListener("click", function () { $("updbox").hidden = true; try { sessionStorage.setItem("pm2.updseen", String(appInfo && appInfo.latest)); } catch (e) {} });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && isApk() && FB && Date.now() - appCheckedAt > 600000) checkApp(); });
   $("open-friends").addEventListener("click", goFriends);
   $("open-clubs").addEventListener("click", goClub);
   $("cl-create").addEventListener("submit", onClubCreate);
