@@ -150,3 +150,13 @@ table `cfg_missions` et colonnes `profiles.mp` / `profiles.mc`. Recolle `schema.
 - Exemple : `update cfg_app set latest_build = 2, latest_name = '1.1', min_build = 2, notes = 'Duels classés', apk_url = 'https://github.com/...', discord_url = 'https://discord.gg/...';`
 
 **Paramètres** : engrenage en haut à gauche du menu → Discord, son (réglage mémorisé, `PMSound.enabled()` pour la future musique), demandes d'amis (colonne `profiles.friend_requests`, refusées côté serveur avec le statut `closed`), Se déconnecter, Supprimer mon compte. Recolle `schema.sql` (colonne, `set_settings`, `cfg_app`, `app_info`).
+
+## Casino du vendredi au dimanche (nouveau)
+
+- Le bouton **Casino** apparaît dans le menu (comptes seulement) du **vendredi au dimanche, heure de Paris, calculée par le serveur** ; il disparaît le reste de la semaine. L'application vérifie toutes les minutes ; une partie refusée hors horaire renvoie au menu.
+- À l'entrée, le crabe **Crabi** explique les règles. Machine à 3 rouleaux (fraise, œuf cosmique, pièce) :
+  3 fraises = mise doublée ; 3 œufs cosmiques = un œuf cosmique (pet tiré par `_roll_egg('cosmique')`, compté dans « œufs ouverts ») mais mise perdue ; 3 pièces = mise rendue ; autre = mise perdue.
+- **Tout est décidé côté serveur** : `casino_play(p_sid, p_bet)` vérifie l'horaire, la mise (entière, entre min et max), les pièces, un délai anti double-clic (`too_fast`), tire les 3 rouleaux, modifie les pièces et le pet dans la même transaction (ligne du joueur verrouillée : un seul tirage à la fois, une seule récompense par tirage) et enregistre la partie dans `casino_plays` (les 50 dernières par joueur ; les 20 dernières sont affichées). Le client n'envoie que la mise ; la table n'est pas accessible directement.
+- **Réglages** (Table Editor > `cfg_settings`) : `casino_min_bet` (20), `casino_max_bet` (500), `casino_w_fraise` (4), `casino_w_oeuf` (2), `casino_w_piece` (4) = poids de chaque symbole sur un rouleau (défaut : 3 fraises 6,4 %, 3 œufs 0,8 %, 3 pièces 6,4 %), `casino_cooldown_ms` (1500).
+- Ne descends pas la mise minimale trop bas : un œuf cosmique vaut 500 pièces, une mise de 1 pièce rendrait le tirage rentable.
+- À faire : recolle `schema.sql`.

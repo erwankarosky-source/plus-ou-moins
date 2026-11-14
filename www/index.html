@@ -451,6 +451,36 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 #updbox { z-index: 60; }
 .ver { text-align: center; color: var(--muted); font-size: 0.8rem; }
 
+/* casino (Fri-Sun) */
+#open-casino { grid-column: 1 / -1; min-height: 64px; flex-direction: row; gap: 10px; border-color: #e0a800; background: #fff4c2; }
+#open-casino svg { color: #b07a00; }
+.crab-box { display: flex; align-items: flex-start; gap: 10px; }
+.crab-box .crab { width: 64px; flex: none; }
+.crab-box .bubble { flex: 1; min-width: 0; font-size: 0.9rem; }
+.rules { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; font-weight: 600; }
+.rules li { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; }
+.rules li.full { grid-template-columns: 1fr; }
+.rules .sy { display: inline-flex; gap: 1px; }
+.sym { width: 100%; height: 100%; display: block; }
+.mini { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+.machine { background: #8b70e6; border: 3px solid #5a44b5; border-radius: 22px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 5px 0 #5a44b5; }
+.reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.reel { background: #fff; border: 3px solid #5a44b5; border-radius: 14px; aspect-ratio: 1 / 1.05; max-height: 22vh; padding: 10%; display: grid; place-items: center; }
+.reel.spin { animation: rshake 0.16s linear infinite; }
+@keyframes rshake { 50% { transform: translateY(2px); } }
+.betrow { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; align-items: center; }
+.betrow button { min-height: 48px; font-size: 1.5rem; padding: 0; }
+.betrow input { width: 100%; min-height: 48px; text-align: center; font: 700 1.3rem var(--font-display); border: 2px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--fg); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.chips button { width: auto; min-height: 38px; padding: 0 12px; border-radius: 999px; font-size: 0.9rem; flex: 1 1 auto; }
+.cas-msg { text-align: center; font-weight: 800; min-height: 1.4em; color: #fff; overflow-wrap: anywhere; }
+.cas-msg.win { color: #ffe27a; }
+.hist { display: grid; gap: 6px; }
+.hist .hr { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; }
+.hist .hr .net { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
+.hist .hr .net.pos { color: var(--up); } .hist .hr .net.neg { color: var(--danger); }
+.hist .hr small { color: var(--muted); display: block; font-weight: 600; }
+
 /* tutorial: the strawberry guide */
 .tuto-dots { display: flex; gap: 8px; justify-content: center; padding-top: 4px; }
 .tuto-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
@@ -476,6 +506,7 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 @media (max-height: 780px) {
   .view { gap: 10px; }
   #tuto .bubble { font-size: 0.98rem; }
+  #open-casino { min-height: 50px; }
   .mascot-wrap { width: min(30vw, 112px); }
   #welcome, #menu { gap: 10px; padding-block: 0; }
   #welcome h1, #menu h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
@@ -614,6 +645,48 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20L16 8M13 5h6v6"/><path d="M20 20L8 8M11 5H5v6"/></svg>
         Duels
       </button>
+      <button class="btn btn-soft tile" id="open-casino" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="12" r="1" fill="currentColor"/></svg>
+        Casino
+      </button>
+    </div>
+  </section>
+
+  <section class="view" id="casino" hidden>
+    <div class="top">
+      <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
+      <span class="pill"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fff4c2" stroke="#e0a800" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#e0a800" stroke-width="1.5"/></svg><b class="num" id="cas-coins">0</b></span>
+    </div>
+    <h2 class="title">Casino</h2>
+    <div id="cas-intro">
+      <div class="crab-box">
+        <div class="crab" id="crab-intro" aria-hidden="true"></div>
+        <div class="bubble">Salut, je suis <b>Crabi</b>, le crabe du casino ! Ouvert du vendredi au dimanche. Choisis ta mise, lance les 3 rouleaux :
+          <ul class="rules">
+            <li><span class="sy" data-sy="fraise,fraise,fraise"></span><span>ta mise est <b>doublée</b></span></li>
+            <li><span class="sy" data-sy="oeuf,oeuf,oeuf"></span><span>tu gagnes un <b>œuf cosmique</b>, mais tu perds ta mise</span></li>
+            <li><span class="sy" data-sy="piece,piece,piece"></span><span>tu <b>récupères</b> ta mise</span></li>
+            <li class="full"><span>Toute autre combinaison : mise <b>perdue</b></span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="stack"><button class="btn btn-main" id="cas-ok" type="button">J'ai compris, je joue !</button></div>
+    </div>
+    <div id="cas-machine" hidden>
+      <div class="machine">
+        <div class="reels" id="cas-reels" aria-live="polite"><div class="reel"></div><div class="reel"></div><div class="reel"></div></div>
+        <p class="cas-msg" id="cas-msg" aria-live="polite"></p>
+        <div class="betrow">
+          <button class="btn btn-soft" id="cas-minus" type="button" aria-label="Diminuer la mise">−</button>
+          <input id="cas-bet" type="text" inputmode="numeric" autocomplete="off" aria-label="Mise" value="50">
+          <button class="btn btn-soft" id="cas-plus" type="button" aria-label="Augmenter la mise">+</button>
+        </div>
+        <div class="chips" id="cas-chips"></div>
+        <button class="btn btn-main" id="cas-spin" type="button">Lancer</button>
+      </div>
+      <button class="linkbtn" id="cas-rules" type="button">Revoir les règles</button>
+      <h3 class="sub-title" style="font-family:var(--font-display)">Tes dernières parties</h3>
+      <div class="hist" id="cas-hist"></div>
     </div>
   </section>
 
@@ -973,7 +1046,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "friends", "club", "tuto", "settings"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "friends", "club", "tuto", "settings", "casino"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -1084,6 +1157,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     var dd = d.daily && typeof d.daily === "object" ? d.daily : {};
     b.daily = { day: typeof dd.day === "string" ? dd.day : "", streak: Math.max(0, Math.floor(+dd.streak || 0)) };
     b.friendReq = d.friendReq !== false;
+    b.casino = !!d.casino;
     b.friendCode = typeof d.friendCode === "string" && /^[A-Z0-9]{8}$/.test(d.friendCode) ? d.friendCode : "";
     b.trophies = Math.max(0, Math.floor(+d.trophies || 0));
     b.duelWins = Math.max(0, Math.floor(+d.duelWins || 0));
@@ -1478,6 +1552,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     $("open-del").textContent = mode === "guest" ? "Effacer mes données" : "Supprimer mon compte";
     $("open-friends").hidden = mode !== "account";
     $("open-clubs").hidden = mode !== "account";
+    renderCasinoBtn();
     if (mode === "account") { refreshFriends(true); refreshClub(true); }
     show("menu");
     if (!dailyChecked) { dailyChecked = true; if (!dailyInfo().claimed) openDaily(); }
@@ -1536,13 +1611,14 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     me.today = typeof p.today === "string" ? p.today : "";
     if (s.phase === "menu") $("coins").textContent = fmtInt(me.coins);
   }
-  var sessTimer = null;
+  var sessTimer = null, casinoTimer = null;
   var friendTimer = null, friendsData = null, frBusy = false, clubData = null, clBusy = false, clList = [], clSrvName = null, clSrvMode = null, clQuery = "", clMode = "open", clSet = "open", clOpenUid = null;
-  function stopSession() { clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; clubData = null; ctx.sid = null; }
+  function stopSession() { clearInterval(casinoTimer); casinoTimer = null; clearInterval(sessTimer); sessTimer = null; clearInterval(friendTimer); friendTimer = null; friendsData = null; clubData = null; ctx.sid = null; }
   function checkSession() { if (mode === "account" && ctx.sid && !document.hidden) srv("check_session").catch(function () {}); }
   function startSessionWatch() {
     clearInterval(sessTimer);
     sessTimer = setInterval(checkSession, 15000);
+    clearInterval(casinoTimer); casinoTimer = setInterval(pollCasino, 60000);
     clearInterval(friendTimer);
     friendTimer = setInterval(function () { if (!document.hidden && (s.phase === "menu" || s.phase === "friends" || s.phase === "club")) { refreshFriends(true); refreshClub(true); } }, 30000);
   }
@@ -3141,6 +3217,116 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     renderWelcome();
   }
 
+  /* ---------- casino (Friday-Sunday, server time) ----------
+     Everything is decided by the server (casino_play): schedule, bet checks, reels, coins and rewards.
+     The client only sends the bet and displays what the server answers. */
+  var CAS = { busy: false, min: 20, max: 500, hist: [], timers: [] };
+  function symSvg(n) {
+    if (n === "fraise") return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 44C12 38 8 26 10 18c3-5 9-6 14-4 5-2 11-1 14 4 2 8-2 20-14 26z" fill="#ff4d6d" stroke="#c91f45" stroke-width="2"/><g fill="#ffe8a3"><circle cx="18" cy="24" r="1.5"/><circle cx="26" cy="22" r="1.5"/><circle cx="31" cy="29" r="1.5"/><circle cx="22" cy="31" r="1.5"/><circle cx="26" cy="37" r="1.5"/><circle cx="16" cy="32" r="1.5"/></g><path d="M12 15c4-1 8 0 12 3 4-3 8-4 12-3-3-3-7-4-12-3-5-1-9 0-12 3z" fill="#3aa860" stroke="#237a43" stroke-width="1.5"/><path d="M24 12v-5" stroke="#237a43" stroke-width="3" stroke-linecap="round"/></svg>';
+    if (n === "oeuf") return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c9 0 16 14 16 25a16 16 0 0 1-32 0C8 18 15 4 24 4z" fill="#8b70e6" stroke="#5a44b5" stroke-width="2"/><g fill="#ffb3e0"><circle cx="18" cy="22" r="3.2"/><circle cx="29" cy="17" r="2.2"/><circle cx="30" cy="30" r="3.6"/><circle cx="19" cy="35" r="2.4"/></g><path d="M36 8l1.2 2.8 2.8 1.2-2.8 1.2L36 16l-1.2-2.8L32 12l2.8-1.2z" fill="#fff"/></svg>';
+    return '<svg class="sym" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19" fill="#fff4c2" stroke="#e0a800" stroke-width="3"/><circle cx="24" cy="24" r="11" fill="none" stroke="#e0a800" stroke-width="3"/><path d="M15 15a13 13 0 0 1 9-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+  function crabSvg() {
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#b3281a" stroke-width="2.5" stroke-linecap="round" fill="none"><path d="M16 44l-8 6M20 48l-6 8M48 44l8 6M44 48l6 8"/></g><g fill="#ee5a43" stroke="#b3281a" stroke-width="2.5"><path d="M13 30C5 28 3 18 8 14c4 3 8 6 7 11z"/><path d="M51 30c8-2 10-12 5-16-4 3-8 6-7 11z"/><ellipse cx="32" cy="38" rx="21" ry="15"/></g><g stroke="#b3281a" stroke-width="2.5" stroke-linecap="round"><path d="M24 25v-5M40 25v-5"/></g><circle cx="24" cy="18" r="5" fill="#fff" stroke="#b3281a" stroke-width="2"/><circle cx="40" cy="18" r="5" fill="#fff" stroke="#b3281a" stroke-width="2"/><circle cx="25" cy="18.5" r="2.2" fill="#2a1730"/><circle cx="41" cy="18.5" r="2.2" fill="#2a1730"/><path d="M25 40q7 6 14 0" fill="none" stroke="#2a1730" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="38" r="3" fill="#ff9d8a" opacity=".7"/><circle cx="45" cy="38" r="3" fill="#ff9d8a" opacity=".7"/></svg>';
+  }
+  function miniSyms(arr) { return arr.map(function (n) { return '<span class="mini">' + symSvg(n) + "</span>"; }).join(""); }
+  function renderCasinoBtn() { $("open-casino").hidden = !(mode === "account" && me && me.casino); }
+  function pollCasino() {
+    if (mode !== "account" || !ctx.sid || document.hidden || CAS.busy) return;
+    srv("casino_status").then(function (r) { casinoApply(r); }).catch(function () {});
+  }
+  function casinoApply(r) {
+    if (!r || !me) return;
+    me.casino = !!r.open;
+    CAS.min = r.min || CAS.min; CAS.max = r.max || CAS.max;
+    if (typeof r.coins === "number") me.coins = r.coins;
+    if (Array.isArray(r.history)) CAS.hist = r.history;
+    renderCasinoBtn();
+    if (s.phase === "casino") {
+      if (!me.casino) { toast("Le casino est fermé. Reviens vendredi !"); goMenu(); return; }
+      renderCasino();
+    }
+  }
+  function goCasino() {
+    if (mode !== "account" || !me || !me.casino) return;
+    stopTimer(); s.phase = "casino";
+    $("crab-intro").innerHTML = crabSvg();
+    document.querySelectorAll("#cas-intro .sy").forEach(function (e) { e.innerHTML = miniSyms(e.dataset.sy.split(",")); });
+    $("cas-intro").hidden = false; $("cas-machine").hidden = true;
+    $("cas-msg").textContent = "";
+    var rs = $("cas-reels").children; for (var i = 0; i < 3; i++) rs[i].innerHTML = symSvg(["fraise", "oeuf", "piece"][i]);
+    var b = parseInt($("cas-bet").value, 10); if (!(b >= CAS.min && b <= CAS.max)) $("cas-bet").value = String(Math.max(CAS.min, Math.min(CAS.max, 50)));
+    renderCasino();
+    show("casino");
+    srv("casino_status").then(casinoApply).catch(function () {});
+  }
+  function casBet() { var v = parseInt(String($("cas-bet").value).replace(/\D/g, ""), 10); return isFinite(v) ? v : 0; }
+  function setBet(v) { v = Math.max(CAS.min, Math.min(CAS.max, Math.floor(v))); $("cas-bet").value = String(v); renderCasino(); }
+  function outText(h) {
+    return h.out === "double" ? "Doublé ! +" + fmtInt(h.net) : h.out === "egg" ? "Œuf cosmique ! −" + fmtInt(-h.net) : h.out === "refund" ? "Mise récupérée" : "Perdu −" + fmtInt(-h.net);
+  }
+  function renderCasino() {
+    $("cas-coins").textContent = fmtInt(me ? me.coins : 0);
+    var chips = $("cas-chips"); chips.innerHTML = "";
+    [CAS.min, 50, 100, 250, CAS.max].filter(function (v, i, a) { return v >= CAS.min && v <= CAS.max && a.indexOf(v) === i; }).forEach(function (v) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn btn-soft"; b.textContent = fmtInt(v); b.dataset.bet = v; chips.appendChild(b);
+    });
+    var bet = casBet(), okBet = bet >= CAS.min && bet <= CAS.max && me && bet <= me.coins;
+    $("cas-spin").disabled = CAS.busy || !okBet;
+    $("cas-spin").textContent = CAS.busy ? "…" : "Lancer (" + fmtInt(bet || 0) + ")";
+    if (!CAS.busy && !okBet && $("cas-msg").textContent === "") $("cas-msg").textContent = me && bet > me.coins ? "Tu n'as pas assez de pièces pour cette mise." : "Mise entre " + fmtInt(CAS.min) + " et " + fmtInt(CAS.max) + ".";
+    var box = $("cas-hist"); box.innerHTML = "";
+    if (!CAS.hist.length) { var em = document.createElement("div"); em.className = "empty-state"; em.textContent = "Aucune partie pour le moment."; box.appendChild(em); }
+    CAS.hist.forEach(function (h) {
+      var row = document.createElement("div"); row.className = "hr";
+      var l = document.createElement("div"); l.innerHTML = miniSyms(h.s);
+      var sm = document.createElement("small"); sm.textContent = "Mise " + fmtInt(h.bet) + " · " + outText(h); l.appendChild(sm);
+      var n = document.createElement("span"); n.className = "net " + (h.net > 0 ? "pos" : h.net < 0 ? "neg" : ""); n.textContent = (h.net > 0 ? "+" : h.net < 0 ? "−" : "") + fmtInt(Math.abs(h.net));
+      row.appendChild(l); row.appendChild(n); box.appendChild(row);
+    });
+  }
+  function casClearTimers() { CAS.timers.forEach(clearTimeout); CAS.timers = []; }
+  function casSpin() {
+    if (CAS.busy || mode !== "account") return;
+    var bet = casBet();
+    if (!(bet >= CAS.min && bet <= CAS.max) || bet > me.coins) { $("cas-msg").textContent = ""; renderCasino(); return; }
+    CAS.busy = true; casClearTimers();
+    $("cas-msg").textContent = ""; $("cas-msg").className = "cas-msg";
+    renderCasino();
+    var reels = $("cas-reels").children, names = ["fraise", "oeuf", "piece"], spinning = [true, true, true];
+    for (var i = 0; i < 3; i++) reels[i].classList.add("spin");
+    var tick = setInterval(function () { for (var k = 0; k < 3; k++) if (spinning[k]) reels[k].innerHTML = symSvg(names[Math.floor(Math.random() * 3)]); }, 90);
+    var t0 = Date.now();
+    srv("casino_play", { p_bet: bet }).then(function (res) {
+      var wait = Math.max(0, 1000 - (Date.now() - t0));
+      [0, 1, 2].forEach(function (k) {
+        CAS.timers.push(setTimeout(function () { spinning[k] = false; reels[k].classList.remove("spin"); reels[k].innerHTML = symSvg(res.s[k]); }, wait + k * 450));
+      });
+      CAS.timers.push(setTimeout(function () {
+        clearInterval(tick);
+        applyProfile(res.profile); me.casino = true;
+        CAS.hist = res.history || CAS.hist;
+        var m = $("cas-msg");
+        m.className = "cas-msg" + (res.out === "double" || res.out === "egg" ? " win" : "");
+        m.textContent = res.out === "double" ? "Trois fraises ! Mise doublée : +" + fmtInt(res.net) + " pièces"
+          : res.out === "egg" ? "Trois œufs cosmiques ! Tu gagnes un œuf cosmique (mise perdue)"
+          : res.out === "refund" ? "Trois pièces : tu récupères ta mise" : "Perdu : −" + fmtInt(-res.net) + " pièces";
+        CAS.busy = false;
+        renderCasino();
+        if (res.out === "egg") { var egg = eggById("cosmique"), pt = petById(res.pet); if (egg && pt) playHatch(egg, pt, res.count); }
+      }, wait + 3 * 450 + 150));
+    }).catch(function (e) {
+      clearInterval(tick); CAS.busy = false;
+      for (var k = 0; k < 3; k++) reels[k].classList.remove("spin");
+      var c = e && e.code;
+      if (c === "casino_closed") { me.casino = false; renderCasinoBtn(); toast("Le casino est fermé. Reviens vendredi !"); goMenu(); return; }
+      $("cas-msg").className = "cas-msg";
+      $("cas-msg").textContent = c === "not_enough_coins" ? "Tu n'as pas assez de pièces." : c === "too_fast" ? "Doucement ! Attends un instant entre deux parties."
+        : c === "bad_bet" ? "Mise invalide (" + fmtInt(CAS.min) + " à " + fmtInt(CAS.max) + ")." : "Impossible de jouer pour le moment. Vérifie ta connexion.";
+      pollCasino(); renderCasino();
+    });
+  }
+
   /* ---------- app updates (APK only) and settings ----------
      Server table cfg_app (Table Editor): latest_build / latest_name / min_build / notes / apk_url / discord_url.
      APP_BUILD must be raised for every APK release. Below min_build the update is mandatory, below latest_build it is optional.
@@ -3426,6 +3612,15 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (b && b.dataset.dl) { duelLvl = b.dataset.dl; renderDuelLvls(); }
   });
   $("open-settings").addEventListener("click", goSettings);
+  $("open-casino").addEventListener("click", goCasino);
+  $("cas-ok").addEventListener("click", function () { $("cas-intro").hidden = true; $("cas-machine").hidden = false; renderCasino(); });
+  $("cas-rules").addEventListener("click", function () { $("cas-intro").hidden = false; $("cas-machine").hidden = true; });
+  $("cas-spin").addEventListener("click", casSpin);
+  $("cas-minus").addEventListener("click", function () { setBet(casBet() - (casBet() > 100 ? 50 : 10)); });
+  $("cas-plus").addEventListener("click", function () { setBet(casBet() + (casBet() >= 100 ? 50 : 10)); });
+  $("cas-bet").addEventListener("input", function () { var v = this.value.replace(/\D/g, "").slice(0, 7); if (v !== this.value) this.value = v; $("cas-msg").textContent = ""; renderCasino(); });
+  $("cas-bet").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); casSpin(); } });
+  $("cas-chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b && b.dataset.bet) { $("cas-msg").textContent = ""; setBet(+b.dataset.bet); } });
   $("set-sound").addEventListener("change", onSound);
   $("set-friends").addEventListener("change", onFriendReq);
   $("upd-later").addEventListener("click", function () { $("updbox").hidden = true; try { sessionStorage.setItem("pm2.updseen", String(appInfo && appInfo.latest)); } catch (e) {} });

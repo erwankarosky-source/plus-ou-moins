@@ -51,7 +51,8 @@ insert into cfg_eggs (id, name, price, odds, uni) values
 on conflict (id) do nothing;
 insert into cfg_settings (key, value) values
   ('shiny_chance', 3), ('shiny_mult', 1.5), ('shiny_sell_mult', 4), ('uni_weight', 5), ('coin_div', 150),
-  ('club_cap', 30), ('club_max_requests', 3), ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5)
+  ('club_cap', 30), ('club_max_requests', 3), ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5),
+  ('casino_min_bet', 20), ('casino_max_bet', 500), ('casino_w_fraise', 4), ('casino_w_oeuf', 2), ('casino_w_piece', 4), ('casino_cooldown_ms', 1500)
 on conflict (key) do nothing;
 insert into cfg_daily (day_idx, coins, egg) values
   (0, 15, null), (1, 20, null), (2, 25, null), (3, 35, null), (4, 45, null), (5, 60, null), (6, null, 'etoile')
@@ -265,12 +266,16 @@ set search_path = public as $$ select value from cfg_settings where key = p_key 
 create or replace function _today() returns date language sql stable
 as $$ select (now() at time zone 'Europe/Paris')::date $$;
 
+-- Casino ouvert du vendredi au dimanche (heure de Paris, côté serveur)
+create or replace function _casino_open() returns boolean language sql stable
+as $$ select extract(isodow from now() at time zone 'Europe/Paris') in (5, 6, 7) $$;
+
 create or replace function _profile_json(p_uid uuid) returns jsonb language sql stable
 set search_path = public as $$
   select jsonb_build_object(
     'name', name, 'best', best, 'bestLvl', best_lvl,
     'b_easy', b_easy, 'b_normal', b_normal, 'b_hard', b_hard, 'b_nightmare', b_nightmare,
-    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'friendReq', friend_requests, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
+    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'friendReq', friend_requests, 'casino', _casino_open(), 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
     'today', _today()::text)
@@ -1403,6 +1408,76 @@ begin
   end if;
   return jsonb_build_object('gid', v_gid, 'lvl', d.lvl,
     'start_in', greatest(0, round(extract(epoch from (d.started_at - now())) * 1000))::int);
+end $$;
+
+-- ---------- Casino (vendredi → dimanche) ----------
+create table if not exists casino_plays (
+  id bigserial primary key, uid uuid not null references profiles(id) on delete cascade,
+  bet int not null, r1 text not null, r2 text not null, r3 text not null,
+  outcome text not null check (outcome in ('double', 'egg', 'refund', 'lose')),
+  net int not null, pet text, at timestamptz not null default now()
+);
+create index if not exists casino_plays_uid on casino_plays (uid, id desc);
+alter table casino_plays enable row level security;
+revoke all on casino_plays from anon, authenticated;
+revoke all on sequence casino_plays_id_seq from anon, authenticated;
+
+create or replace function _casino_set(p_key text, p_def numeric) returns numeric language sql stable
+as $$ select coalesce((select value from cfg_settings where key = p_key), p_def) $$;
+
+create or replace function _casino_hist(p_uid uuid) returns jsonb language sql stable
+set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'bet', bet, 's', jsonb_build_array(r1, r2, r3), 'out', outcome, 'net', net, 'pet', pet,
+         'at', extract(epoch from at)::bigint) order by id desc), '[]')
+  from (select * from casino_plays where uid = p_uid order by id desc limit 20) h
+$$;
+
+create or replace function casino_status(p_sid text) returns jsonb language plpgsql stable security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin
+  return jsonb_build_object('open', _casino_open(), 'min', _casino_set('casino_min_bet', 20)::int, 'max', _casino_set('casino_max_bet', 500)::int,
+    'coins', (select coins from profiles where id = v_uid), 'history', _casino_hist(v_uid));
+end $$;
+
+-- Un tirage : tout est décidé ici (horaire, mise, rouleaux, gains, pièces). Le client n'envoie que la mise.
+create or replace function casino_play(p_sid text, p_bet int) returns jsonb language plpgsql volatile security definer
+set search_path = public as $$
+declare
+  v_uid uuid := _me(p_sid); p profiles; v_min int := _casino_set('casino_min_bet', 20)::int; v_max int := _casino_set('casino_max_bet', 500)::int;
+  w numeric[] := array[_casino_set('casino_w_fraise', 4), _casino_set('casino_w_oeuf', 2), _casino_set('casino_w_piece', 4)];
+  names text[] := array['fraise', 'oeuf', 'piece'];
+  tot numeric; x numeric; acc numeric; i int; j int; r text[] := array[]::text[];
+  v_out text; v_net int; v_pet text; v_n int;
+begin
+  if not _casino_open() then raise exception 'casino_closed'; end if;
+  if p_bet is null or p_bet < v_min or p_bet > v_max then raise exception 'bad_bet'; end if;
+  select * into p from profiles where id = v_uid for update;          -- verrou : un seul tirage à la fois par joueur
+  if exists (select 1 from casino_plays where uid = v_uid and at > now() - make_interval(secs => _casino_set('casino_cooldown_ms', 1500) / 1000.0)) then
+    raise exception 'too_fast';
+  end if;
+  if p.coins < p_bet then raise exception 'not_enough_coins'; end if;
+  tot := w[1] + w[2] + w[3];
+  for j in 1..3 loop
+    x := random() * tot; acc := 0; i := 0;
+    loop i := i + 1; acc := acc + w[i]; exit when x < acc or i = 3; end loop;
+    r := r || names[i];
+  end loop;
+  if r[1] = r[2] and r[2] = r[3] then
+    if r[1] = 'fraise' then v_out := 'double'; v_net := p_bet;
+    elsif r[1] = 'oeuf' then v_out := 'egg'; v_net := -p_bet;
+    else v_out := 'refund'; v_net := 0; end if;
+  else v_out := 'lose'; v_net := -p_bet; end if;
+  update profiles set coins = coins + v_net where id = v_uid;
+  if v_out = 'egg' then
+    v_pet := _roll_egg('cosmique');
+    v_n := _add_pet(v_uid, v_pet);
+    update profiles set hatched = hatched + 1 where id = v_uid;
+  end if;
+  insert into casino_plays (uid, bet, r1, r2, r3, outcome, net, pet) values (v_uid, p_bet, r[1], r[2], r[3], v_out, v_net, v_pet);
+  delete from casino_plays where uid = v_uid and id not in (select id from casino_plays where uid = v_uid order by id desc limit 50);
+  return jsonb_build_object('s', to_jsonb(r), 'out', v_out, 'bet', p_bet, 'net', v_net, 'pet', v_pet, 'count', v_n,
+    'profile', _profile_json(v_uid), 'history', _casino_hist(v_uid));
 end $$;
 
 -- ---------- Réglages joueur ----------
