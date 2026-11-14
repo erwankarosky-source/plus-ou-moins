@@ -3,7 +3,7 @@
 1. **Créer le projet** : supabase.com > New project (région Europe). Garde le mot de passe de la base.
 2. **Désactiver la confirmation par e-mail** : Authentication > Sign In / Providers > Email > désactive « Confirm email ».
 3. **Créer les tables et le serveur** : SQL Editor > New query > colle tout `supabase/schema.sql` > Run.
-   Tu peux le relancer sans risque. Les réglages du jeu (prix des œufs, chances, défis, cadeaux) se
+   Tu peux le relancer sans risque. Les réglages du jeu (prix des œufs, chances, cadeaux) se
    modifient ensuite dans Table Editor, tables `cfg_*`, sans toucher au code.
 4. **Brancher le jeu** : Project Settings > API. Dans `www/index.html`, ligne `window.PM_SUPABASE`, remplace
    `url` par le Project URL et `key` par la clé `anon` (ou « publishable »). Jamais la clé `service_role`.
@@ -124,3 +124,9 @@ Facile (1–10), un duel Normal (1–100), et la fraise conclut qu'il a compris 
   (puis `finish_tuto` remet `true`).
 - **À faire une fois** : recolle `schema.sql` (ajoute la colonne et la fonction `finish_tuto`, sans rien perdre).
 - Limite : après une réinstallation ou un effacement des données, le tutoriel réapparaît une fois (avec « Passer »).
+
+## Mode Défis supprimé
+
+Le mode « Défis » (missions à récompense) a été retiré : bouton du menu, écran, code client, `claim_mission`,
+table `cfg_missions` et colonnes `profiles.mp` / `profiles.mc`. Recolle `schema.sql` : il fait le nettoyage tout seul
+(`drop ... if exists`). Les pièces déjà gagnées grâce aux défis restent chez les joueurs ; seul l'historique de progression des défis disparaît.

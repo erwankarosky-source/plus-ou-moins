@@ -22,12 +22,6 @@ create table if not exists cfg_eggs (
 );
 create table if not exists cfg_settings (key text primary key, value numeric not null);
 create table if not exists cfg_daily (day_idx int primary key, coins int, egg text);
-create table if not exists cfg_missions (
-  id text primary key, title text not null, descr text not null default '',
-  type text not null check (type in ('games', 'hatch', 'score', 'tries')),
-  level text not null default '', target int not null, reward int not null,
-  ord int not null default 0, active boolean not null default true
-);
 
 insert into cfg_levels (id, max_n, par, time_s, mult) values
   ('easy', 10, 3, 20, 1), ('normal', 100, 6, 60, 2), ('hard', 1000, 9, 120, 4), ('nightmare', null, 24, 300, 8)
@@ -62,13 +56,6 @@ on conflict (key) do nothing;
 insert into cfg_daily (day_idx, coins, egg) values
   (0, 15, null), (1, 20, null), (2, 25, null), (3, 35, null), (4, 45, null), (5, 60, null), (6, null, 'etoile')
 on conflict (day_idx) do nothing;
-insert into cfg_missions (id, title, descr, type, level, target, reward, ord) values
-  ('d1', 'Premiers pas', '', 'games', '', 5, 50, 1),
-  ('d2', 'Éleveur', '', 'hatch', '', 3, 60, 2),
-  ('d3', 'Éclair', '', 'tries', 'normal', 6, 100, 3),
-  ('d4', 'Gros score', '', 'score', 'normal', 1200, 150, 4),
-  ('d5', 'Marathonien', '', 'games', '', 25, 200, 5)
-on conflict (id) do nothing;
 
 -- ---------- Données des joueurs (personne ne peut les lire ni les écrire directement) ----------
 create table if not exists profiles (
@@ -88,8 +75,6 @@ create table if not exists profiles (
   team jsonb not null default '[]',
   daily_day date,
   daily_streak int not null default 0,
-  mp jsonb not null default '{}',
-  mc jsonb not null default '{}',
   sid text,
   created_at timestamptz not null default now()
 );
@@ -258,17 +243,16 @@ alter table cfg_pets enable row level security;
 alter table cfg_eggs enable row level security;
 alter table cfg_settings enable row level security;
 alter table cfg_daily enable row level security;
-alter table cfg_missions enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['cfg_levels','cfg_rarities','cfg_pets','cfg_eggs','cfg_settings','cfg_daily','cfg_missions'] loop
+  foreach t in array array['cfg_levels','cfg_rarities','cfg_pets','cfg_eggs','cfg_settings','cfg_daily'] loop
     execute format('drop policy if exists "lecture publique" on %I', t);
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
 revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_words, name_history, friendships, friend_attempts, clubs, club_members, club_requests from anon, authenticated;
-revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions from anon, authenticated;
+revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily from anon, authenticated;
 
 -- =====================================================================
 -- Fonctions internes (préfixe _ : jamais appelables depuis le téléphone)
@@ -287,7 +271,7 @@ set search_path = public as $$
     'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
-    'mp', mp, 'mc', mc, 'today', _today()::text)
+    'today', _today()::text)
   from profiles where id = p_uid
 $$;
 
@@ -383,10 +367,7 @@ set search_path = public as $$
     'pets', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'pct', pct)), '[]') from cfg_pets),
     'eggs', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'price', price, 'odds', odds)), '[]') from cfg_eggs),
     'settings', (select coalesce(jsonb_object_agg(key, value), '{}') from cfg_settings),
-    'daily', (select coalesce(jsonb_agg(jsonb_build_object('coins', coins, 'egg', egg) order by day_idx), '[]') from cfg_daily),
-    'missions', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'title', title, 'desc', descr, 'type', type,
-        'level', level, 'target', target, 'reward', reward, 'order', ord) order by ord, title), '[]')
-      from cfg_missions where active))
+    'daily', (select coalesce(jsonb_agg(jsonb_build_object('coins', coins, 'egg', egg) order by day_idx), '[]') from cfg_daily))
 $$;
 
 -- ---------- Pseudos : règles, liste noire, changement réel ----------
@@ -1043,7 +1024,7 @@ set search_path = public as $$
 declare
   v_uid uuid := _me(p_sid); g games; L cfg_levels; d duels; n numeric; v_tries int; v_el numeric;
   v_a int; v_t int; v_base int; bc int; bs int; v_total bigint; v_coins int; v_duel boolean; v_won boolean := true;
-  v_rec boolean := false; v_mp jsonb; m cfg_missions; v_name text; v_best bigint; v_lvl_best bigint; v_newmp boolean := false;
+  v_rec boolean := false; v_name text; v_best bigint; v_lvl_best bigint;
 begin
   select * into g from games where id = p_gid and uid = v_uid for update;
   if not found then raise exception 'no_game'; end if;
@@ -1103,19 +1084,10 @@ begin
       b_hard = case when g.lvl = 'hard' and v_total > b_hard then v_total else b_hard end,
       b_nightmare = case when g.lvl = 'nightmare' and v_total > b_nightmare then v_total else b_nightmare end
       where id = v_uid;
-    -- défis "score" et "tries"
-    select mp into v_mp from profiles where id = v_uid;
-    for m in select * from cfg_missions where active and type in ('score', 'tries') loop
-      if (v_mp ? m.id) or (m.level <> '' and m.level <> g.lvl) then continue; end if;
-      if (m.type = 'score' and v_total >= m.target) or (m.type = 'tries' and v_tries <= m.target) then
-        v_mp := v_mp || jsonb_build_object(m.id, 1); v_newmp := true;
-      end if;
-    end loop;
-    if v_newmp then update profiles set mp = v_mp where id = v_uid; end if;
   end if;
   return jsonb_build_object('dir', 'hit', 'secret', g.secret, 'tries', v_tries, 'elapsed', round(v_el, 1),
     'a', v_a, 't', v_t, 'base', v_base, 'total', v_total, 'coins', v_coins, 'bcoin', bc, 'bscore', bs,
-    'record', v_rec, 'mission', v_newmp, 'duel', v_duel,
+    'record', v_rec, 'duel', v_duel,
     'trophies', case when v_duel then (select case when mode = 'ranked' then delta_w else 0 end from duels where code = g.duel_code) else 0 end,
     'dmode', case when v_duel then (select mode from duels where code = g.duel_code) else null end,
     'profile', _profile_json(v_uid));
@@ -1177,7 +1149,7 @@ begin
   return jsonb_build_object('gain', v_gain, 'profile', _profile_json(v_uid));
 end $$;
 
--- ---------- Cadeau du jour et défis ----------
+-- ---------- Cadeau du jour ----------
 create or replace function claim_daily(p_sid text) returns jsonb language plpgsql volatile security definer
 set search_path = public as $$
 declare
@@ -1196,20 +1168,6 @@ begin
   v_n := _add_pet(v_uid, v_pet);
   update profiles set hatched = hatched + 1 where id = v_uid;
   return jsonb_build_object('egg', r.egg, 'pet', v_pet, 'count', v_n, 'profile', _profile_json(v_uid));
-end $$;
-
-create or replace function claim_mission(p_sid text, p_id text) returns jsonb language plpgsql volatile security definer
-set search_path = public as $$
-declare v_uid uuid := _me(p_sid); m cfg_missions; p profiles; v_ok boolean;
-begin
-  select * into m from cfg_missions where id = p_id and active;
-  if not found then raise exception 'bad_mission'; end if;
-  select * into p from profiles where id = v_uid for update;
-  if p.mc ? m.id then raise exception 'already_claimed'; end if;
-  v_ok := case m.type when 'games' then p.games >= m.target when 'hatch' then p.hatched >= m.target else p.mp ? m.id end;
-  if not v_ok then raise exception 'not_done'; end if;
-  update profiles set coins = coins + m.reward, mc = mc || jsonb_build_object(m.id, true) where id = v_uid;
-  return _profile_json(v_uid);
 end $$;
 
 -- ---------- Classement (top 50 par niveau) ----------
@@ -1457,4 +1415,9 @@ begin
   grant execute on function resolve_login(text) to anon;
   grant execute on function check_name(text) to anon;
 end $$;
-grant select on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_missions to anon, authenticated;
+-- ---------- Nettoyage : le mode Défis (missions) a été supprimé ----------
+drop function if exists claim_mission(text, text);
+drop table if exists cfg_missions;
+alter table profiles drop column if exists mp, drop column if exists mc;
+
+grant select on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily to anon, authenticated;
