@@ -106,3 +106,21 @@ select * from admin_blocked_clubs();                          -- clubs dont le n
 Les limites (`club_cap`, `club_max_requests`) se règlent dans `cfg_settings`.
 
 **À faire une fois :** recolle `schema.sql` en entier (relançable sans risque), puis installe le nouvel APK.
+
+## Tutoriel avec la fraise (nouveau)
+
+Un nouveau joueur (jamais lancé le jeu sur cet appareil) voit d'abord un tutoriel, **avant** « Créer un compte / Se connecter » :
+la fraise guide (nom temporaire **Fraisy**, adversaire d'entraînement **Kiwi**) explique Plus/Moins, puis le joueur fait un duel
+Facile (1–10), un duel Normal (1–100), et la fraise conclut qu'il a compris et peut jouer. Les duels du tutoriel sont locaux
+(aucun appel serveur, aucun gain ; le bot ne peut jamais gagner).
+
+- **Changer le nom** : constantes `TUTO_NAME` et `BOT_NAME` dans `www/index.html`.
+- **Mémorisation** : `localStorage` clé `pm2.tuto = "1"` (marche en APK et sur le web) + colonne serveur `profiles.tuto_done`
+  (défaut `true` : les comptes existants ne le voient jamais). Au login, si le serveur dit `true`, l'appareil est marqué comme « fait ».
+- **Statut vérifié avant affichage** : le tutoriel ne s'affiche que si `pm2.tuto` est absent **et** qu'il n'existe ni partie invité
+  (`pm2.guest`), ni session Supabase enregistrée : les joueurs existants (même sans le drapeau) ne le voient jamais.
+- **Passer** : bouton « Passer le tutoriel » à chaque étape ; « Revoir le tutoriel » sur l'écran d'accueil.
+- **Forcer** pour un compte : `update profiles set tuto_done = false where ...;` → le tutoriel se lance une fois après sa connexion
+  (puis `finish_tuto` remet `true`).
+- **À faire une fois** : recolle `schema.sql` (ajoute la colonne et la fonction `finish_tuto`, sans rien perdre).
+- Limite : après une réinstallation ou un effacement des données, le tutoriel réapparaît une fois (avec « Passer »).

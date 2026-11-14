@@ -452,9 +452,31 @@ button:disabled { cursor: default; }
 .toast { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 40; }
 .toast span { background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: 0.92rem; text-align: center; }
 
+/* tutorial: the strawberry guide */
+.tuto-dots { display: flex; gap: 8px; justify-content: center; padding-top: 4px; }
+.tuto-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.tuto-dots i.on { background: var(--accent); }
+.coach-name { text-align: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 1.1rem; }
+.bubble { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 20px; padding: 12px 14px; font-weight: 700; line-height: 1.35; box-shadow: 0 4px 0 var(--line); overflow-wrap: anywhere; }
+#tuto .bubble { text-align: center; font-size: 1.05rem; max-width: 36ch; margin-inline: auto; }
+.coach { display: flex; align-items: center; gap: 8px; }
+.coach .mascot { width: 44px; flex: none; }
+.coach .bubble { flex: 1; min-width: 0; font-size: 0.88rem; padding: 7px 10px; border-radius: 16px; box-shadow: none; }
+
+@media (max-height: 640px) {
+  .coach .mascot { width: 32px; }
+  .coach .bubble { font-size: 0.8rem; padding: 4px 8px; line-height: 1.25; }
+  .coach:not([hidden]) ~ .stats { display: none; }
+  .coach ~ .verdict { min-height: 4.6rem; }
+  .coach ~ .verdict .mascot { width: 48px; }
+  .coach ~ .verdict .word { font-size: clamp(2rem, 11vw, 2.8rem); }
+  .coach:not([hidden]) ~ .verdict .sub { display: none; }
+}
+
 /* small screens: everything must fit without scrolling the page */
 @media (max-height: 780px) {
   .view { gap: 10px; }
+  #tuto .bubble { font-size: 0.98rem; }
   .mascot-wrap { width: min(30vw, 112px); }
   #welcome, #menu { gap: 10px; padding-block: 0; }
   #welcome h1, #menu h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
@@ -543,6 +565,18 @@ button:disabled { cursor: default; }
 
     <p class="note" id="welcome-note" aria-live="polite">Connexion en cours...</p>
     <button class="linkbtn" id="w-guest" type="button">Jouer sans compte</button>
+    <button class="linkbtn" id="w-tuto" type="button">Revoir le tutoriel</button>
+  </section>
+
+  <section class="view" id="tuto" hidden>
+    <div class="tuto-dots" id="tuto-dots" aria-hidden="true"></div>
+    <div class="mascot-wrap"><div class="mascot" id="mascot-tuto"></div></div>
+    <p class="coach-name" id="tuto-name"></p>
+    <div class="bubble" id="tuto-text" aria-live="polite"></div>
+    <div class="stack">
+      <button class="btn btn-main" id="tuto-next" type="button"></button>
+    </div>
+    <button class="linkbtn" id="tuto-skip" type="button">Passer le tutoriel</button>
   </section>
 
   <section class="view" id="menu" hidden>
@@ -775,6 +809,11 @@ button:disabled { cursor: default; }
       <div class="pill" id="lvl-pill">Normal</div>
     </div>
 
+    <div class="coach" id="coach" hidden>
+      <div class="mascot" id="mascot-coach"></div>
+      <div class="bubble" id="coach-text" aria-live="polite"></div>
+    </div>
+
     <div class="stats">
       <div class="stat"><small>Essais</small><b id="tries">0</b></div>
       <div class="stat"><small>Temps</small><b id="time">0,0 s</b></div>
@@ -804,6 +843,10 @@ button:disabled { cursor: default; }
         <button class="go" id="go" type="button" disabled>Valider</button>
       </div>
       <div class="pad" id="pad"></div>
+    </div>
+
+    <div id="coach-end" hidden>
+      <button class="btn btn-main" id="coach-next" type="button">Suite</button>
     </div>
 
     <div id="result" hidden>
@@ -917,7 +960,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 </script>
 <script>
 (function () {
-  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions", "friends", "club"];
+  var VIEWS = ["welcome", "menu", "levels", "game", "board", "shop", "inv", "del", "duel", "lobby", "missions", "friends", "club", "tuto"];
 
   /* ---------- game data ---------- */
   var LVLS = [
@@ -1512,6 +1555,8 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     me.today = typeof res.profile.today === "string" ? res.profile.today : "";
     startSessionWatch();
     boards = {};
+    if (res.profile.tutoDone === false) { startTuto(false); return; }     // server asks for the tutorial (tuto_done = false)
+    lsSet("pm2.tuto", "1");
     goMenu();
   }
 
@@ -2181,6 +2226,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
         if (mode !== "account") return;
       }
     }
+    s.tg = false; $("coach").hidden = true; $("coach-end").hidden = true;
     s.gid = gid; s.busy = false;
     s.L = L; s.lvl = L.id; boardLvl = L.id; s.duel = duel || null; s.duelEnded = false;
     // account games: the secret number lives on the server only
@@ -2229,7 +2275,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
       return;
     }
     var w = $("word"), dir;
-    if (mode === "account") {
+    if (mode === "account" && !s.tg) {
       var res;
       s.busy = true;
       try { res = await srv("guess", { p_gid: s.gid, p_n: s.entry }); }
@@ -2250,7 +2296,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
       if (dir === "hit") { s.guesses.push({ n: n, dir: "hit" }); s.secret = n; win(res); return; }
     } else {
       dir = n === s.secret ? "hit" : (n < s.secret ? "plus" : "moins");
-      if (dir === "hit") { s.guesses.push({ n: n, dir: "hit" }); win(null); return; }
+      if (dir === "hit") { s.guesses.push({ n: n, dir: "hit" }); if (s.tg) { tutoWin(); return; } win(null); return; }
     }
     if (dir === "plus") {
       s.low = inc(n);
@@ -2271,6 +2317,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     renderRange();
     renderHistory();
     $("tries").textContent = String(s.guesses.length);
+    if (s.tg) tutoBot(n, dir);
   }
 
   function partRow(a, b) {
@@ -3164,6 +3211,121 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     renderWelcome();
   }
 
+  /* ---------- tutorial (strawberry guide) ----------
+     Status is checked BEFORE anything is shown:
+       pm2.tuto = "1"  -> already done on this device
+       guest data, a saved login session or a login lock exist -> existing player: never show it, remember it
+       account profile (server column tuto_done) -> synced at login; false forces the tutorial once
+     A reinstall / cleared data on a device shows it once, with a Skip button. */
+  var TUTO_NAME = "Fraisy", BOT_NAME = "Kiwi";
+  var tu = null;     // { step, replay }
+  var TUTO_STEPS = [
+    { mood: "win", text: "Salut ! Moi, c'est " + TUTO_NAME + ", ta fraise guide. Je t'explique le jeu en deux minutes.", btn: "Suivant" },
+    { mood: "idle", text: "C'est simple : un nombre secret est caché. Tu proposes un nombre, et je réponds « Plus » ou « Moins ».", btn: "Suivant" },
+    { mood: "up", text: "« Plus » : le secret est plus grand que ton nombre. « Moins » : il est plus petit. Trouve-le avec le moins d'essais possible, et vite !", btn: "Suivant" },
+    { mood: "idle", text: "En duel, tu affrontes un adversaire sur le même nombre : le premier qui le trouve gagne. Essayons un duel facile contre " + BOT_NAME + " (de 1 à 10).", btn: "Duel facile", game: "easy" },
+    { mood: "win", text: "Bravo, tu as gagné ! Maintenant, un duel en difficulté normale : le nombre est entre 1 et 100. Astuce : coupe toujours l'intervalle en deux.", btn: "Duel normal", game: "normal" },
+    { mood: "win", text: "Tu as compris le fonctionnement du jeu ! Tu peux maintenant jouer. Crée un compte pour garder tes points, ou connecte-toi.", btn: "C'est parti !", end: true }
+  ];
+  function hasAuthToken() {
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^sb-.*-auth-token/.test(k)) return true; } } catch (e) {}
+    return false;
+  }
+  function tutoNeeded() {
+    if (lsGet("pm2.tuto") === "1") return false;
+    if (lsGet("pm2.guest") || lsGet("pm2.lock") || hasAuthToken()) { lsSet("pm2.tuto", "1"); return false; }   // existing player
+    return true;
+  }
+  function startTuto(replay) {
+    stopTimer();
+    tu = { step: 0, replay: !!replay };
+    s.phase = "tuto"; s.tg = false;
+    renderTuto();
+    show("tuto");
+  }
+  function renderTuto() {
+    var st = TUTO_STEPS[tu.step];
+    var dots = $("tuto-dots"); dots.innerHTML = "";
+    for (var i = 0; i < TUTO_STEPS.length; i++) { var d = document.createElement("i"); if (i <= tu.step) d.className = "on"; dots.appendChild(d); }
+    setMascot("mascot-tuto", st.mood);
+    $("tuto-name").textContent = TUTO_NAME;
+    $("tuto-text").textContent = st.text;
+    $("tuto-next").textContent = st.btn;
+    $("tuto-skip").hidden = !!st.end;
+    s.phase = "tuto";
+  }
+  function tutoNext() {
+    if (!tu) return;
+    var st = TUTO_STEPS[tu.step];
+    if (st.end) { finishTuto(); return; }
+    if (st.game) { startTutoGame(st.game); return; }
+    tu.step++; renderTuto(); pop($("tuto-text"));
+  }
+  function finishTuto() {
+    lsSet("pm2.tuto", "1");
+    tu = null; s.tg = false; s.phase = "welcome";
+    $("coach").hidden = true; $("coach-end").hidden = true;
+    stopTimer();
+    if (mode === "account") { srv("finish_tuto").catch(function () {}); goMenu(); }
+    else goWelcome();
+  }
+  function startTutoGame(id) {
+    var L = lvlById(id);
+    s.tg = true; s.gid = null; s.busy = false; s.duel = null; s.duelEnded = false;
+    s.L = L; s.lvl = L.id;
+    s.secret = 1 + Math.floor(Math.random() * L.max);
+    s.low = 1; s.high = L.max; s.guesses = []; s.entry = "";
+    tu.bl = 1; tu.bh = L.max;                      // the bot's own range
+    s.phase = "playing";
+    s.t0 = performance.now(); s.elapsed = 0;
+    stopTimer(); s.timer = setInterval(tick, 100);
+    show("game");
+    $("lvl-pill").textContent = "Essai · " + L.name;
+    $("play").hidden = false; $("result").hidden = true; $("coach-end").hidden = true;
+    $("coach").hidden = false;
+    setMascot("mascot-coach", "idle");
+    $("coach-text").textContent = "Entre un nombre de 1 à " + L.max + ". Astuce : essaie le milieu (" + Math.ceil(L.max / 2) + ").";
+    var w = $("word"); w.className = "word"; w.textContent = "?";
+    setSub(introText(L));
+    setMascot("mascot-game", "idle");
+    $("range-box").hidden = false;
+    $("max-label").textContent = fmtInt(L.max);
+    renderEntry(); renderRange(); renderHistory();
+    $("tries").textContent = "0";
+    $("time").textContent = fmtTime(0);
+  }
+  /* the bot plays after each of your guesses, but never finds the number before you */
+  function tutoBot(n, dir) {
+    var msg = (dir === "plus" ? "Plus grand que " : "Plus petit que ") + n + ". ";
+    var cand = [];
+    for (var v = tu.bl; v <= tu.bh; v++) if (v !== s.secret) cand.push(v);
+    if (cand.length) {
+      var g = cand[Math.floor(Math.random() * cand.length)];
+      if (g < s.secret) { tu.bl = g + 1; msg += BOT_NAME + " essaie " + g + " : c'est plus."; }
+      else { tu.bh = g - 1; msg += BOT_NAME + " essaie " + g + " : c'est moins."; }
+    } else msg += BOT_NAME + " hésite…";
+    setMascot("mascot-coach", dir === "plus" ? "up" : "down");
+    $("coach-text").textContent = msg + " À toi !";
+  }
+  function tutoWin() {
+    stopTimer();
+    s.elapsed = (performance.now() - s.t0) / 1000;
+    s.phase = "won";
+    var w = $("word"); w.className = "word win"; w.textContent = fmtInt(s.secret); pop(w);
+    setSub("Trouvé !");
+    setMascot("mascot-game", "win"); setMascot("mascot-coach", "win");
+    $("tries").textContent = String(s.guesses.length);
+    $("time").textContent = fmtTime(s.elapsed);
+    s.low = s.secret; s.high = s.secret;
+    renderRange(); renderHistory();
+    var a = s.guesses.length;
+    $("coach-text").textContent = "Tu as trouvé en " + a + (a > 1 ? " essais" : " essai") + " : tu bats " + BOT_NAME + " !";
+    $("play").hidden = true;
+    $("coach-end").hidden = false;
+    $("coach-next").textContent = "Suite";
+    tu.step = tu.step + 1;                          // 3 -> 4 (normal duel), 4 -> 5 (end)
+  }
+
   /* Android app: the game is drawn edge to edge; the app tells us how tall the camera notch is */
   function readNativeInsets() {
     try { if (window.PMNative && window.PMNative.safeTop) document.documentElement.style.setProperty("--sat", window.PMNative.safeTop() + "px"); } catch (e) {}
@@ -3214,6 +3376,10 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   });
   $("logout").addEventListener("click", logout);
   $("w-guest").addEventListener("click", playAsGuest);
+  $("w-tuto").addEventListener("click", function () { startTuto(true); });
+  $("tuto-next").addEventListener("click", tutoNext);
+  $("tuto-skip").addEventListener("click", finishTuto);
+  $("coach-next").addEventListener("click", function () { $("coach-end").hidden = true; $("coach").hidden = true; s.tg = false; renderTuto(); show("tuto"); pop($("tuto-text")); });
 
   $("w-create").addEventListener("click", function () {
     if (!ctx.ready || !accountsAvailable()) return;
@@ -3245,7 +3411,10 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   $("delform").addEventListener("submit", onDelete);
 
   var menuBtns = document.querySelectorAll("[data-menu]");
-  for (var mi = 0; mi < menuBtns.length; mi++) menuBtns[mi].addEventListener("click", function () { if (confirmLeave()) goMenu(); });
+  for (var mi = 0; mi < menuBtns.length; mi++) menuBtns[mi].addEventListener("click", function () {
+      if (s.tg) { stopTimer(); s.tg = false; $("coach").hidden = true; $("coach-end").hidden = true; if (s.phase === "playing") tu.step = Math.max(3, tu.step); renderTuto(); show("tuto"); return; }   // back to the guide
+      if (confirmLeave()) goMenu();
+    });
 
   $("daily-btn").addEventListener("click", function () {
     if ($("daily-btn").dataset.state === "close") closeDaily(); else claimDaily();
@@ -3277,6 +3446,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
 
   buildPad();
   goWelcome();
+  if (tutoNeeded()) startTuto(false);   // before anything is drawn: no flash of the welcome screen
   init();
 })();
 </script>

@@ -99,6 +99,8 @@ alter table profiles add column if not exists duel_wins int not null default 0;
 -- Les comptes existants gardent leur identifiant actuel (copié depuis auth.users).
 alter table profiles add column if not exists login_email text;
 alter table profiles add column if not exists friend_code text;
+-- tutoriel : true = ne pas le montrer (comptes existants = true ; mets false pour forcer le tutoriel au prochain login)
+alter table profiles add column if not exists tuto_done boolean not null default true;
 alter table profiles add column if not exists duel_losses int not null default 0;
 create index if not exists profiles_b_easy on profiles (b_easy desc);
 create index if not exists profiles_b_normal on profiles (b_normal desc);
@@ -282,7 +284,7 @@ set search_path = public as $$
   select jsonb_build_object(
     'name', name, 'best', best, 'bestLvl', best_lvl,
     'b_easy', b_easy, 'b_normal', b_normal, 'b_hard', b_hard, 'b_nightmare', b_nightmare,
-    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
+    'games', games, 'coins', coins, 'hatched', hatched, 'friendCode', friend_code, 'tutoDone', tuto_done, 'trophies', trophies, 'duelWins', duel_wins, 'duelLosses', duel_losses, 'inv', inv, 'team', team,
     'pet', coalesce(team ->> 0, ''),
     'daily', jsonb_build_object('day', coalesce(daily_day::text, ''), 'streak', daily_streak),
     'mp', mp, 'mc', mc, 'today', _today()::text)
@@ -995,6 +997,11 @@ end $$;
 create or replace function check_session(p_sid text) returns boolean language plpgsql stable security definer
 set search_path = public as $$
 begin perform _me(p_sid); return true; end $$;
+
+create or replace function finish_tuto(p_sid text) returns boolean language plpgsql volatile security definer
+set search_path = public as $$
+declare v_uid uuid := _me(p_sid);
+begin update profiles set tuto_done = true where id = v_uid; return true; end $$;
 
 create or replace function delete_account(p_sid text) returns boolean language plpgsql volatile security definer
 set search_path = public, auth as $$
