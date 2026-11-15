@@ -28,6 +28,8 @@ jobs:
           cat > android/app/src/main/java/com/erwan/plusoumoins/MainActivity.java <<'JAVA'
           package com.erwan.plusoumoins;
 
+          import android.graphics.Color;
+          import android.graphics.drawable.ColorDrawable;
           import android.os.Build;
           import android.os.Bundle;
           import android.view.Window;
@@ -47,13 +49,29 @@ jobs:
               Window w = getWindow();
               // Draw behind the status bar and the camera notch: no grey band at the top
               WindowCompat.setDecorFitsSystemWindows(w, false);
+              // Transparent system bars + window colour = page colour: no strip, whatever the phone
+              w.setStatusBarColor(Color.TRANSPARENT);
+              w.setNavigationBarColor(Color.TRANSPARENT);
+              if (Build.VERSION.SDK_INT >= 29) {
+                w.setNavigationBarContrastEnforced(false);
+                w.setStatusBarContrastEnforced(false);
+              }
+              w.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#FFEFF5")));
               if (Build.VERSION.SDK_INT >= 28) {
                 WindowManager.LayoutParams lp = w.getAttributes();
-                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30
+                  ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                  : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                 w.setAttributes(lp);
               }
               // Lets the page know how tall the camera notch is, so nothing is hidden under it
               getBridge().getWebView().addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public void setBg(final String hex) {
+                  runOnUiThread(new Runnable() { public void run() {
+                    try { getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor(hex))); } catch (Exception e) {}
+                  }});
+                }
                 @JavascriptInterface
                 public int safeTop() {
                   WindowInsetsCompat i = ViewCompat.getRootWindowInsets(getWindow().getDecorView());

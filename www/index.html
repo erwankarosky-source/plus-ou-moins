@@ -111,7 +111,7 @@
 }
 
 * { box-sizing: border-box; }
-html { height: 100%; overflow: hidden; overscroll-behavior: none; }
+html { height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg); }
 body {
   background-color: var(--bg);
   background-image: radial-gradient(var(--dot) 2px, transparent 2px);
@@ -452,8 +452,13 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 .ver { text-align: center; color: var(--muted); font-size: 0.8rem; }
 
 /* casino (Fri-Sun) */
-#open-casino { grid-column: 1 / -1; min-height: 64px; flex-direction: row; gap: 10px; border-color: #e0a800; background: #fff4c2; }
-#open-casino svg { color: #b07a00; }
+#open-casino { top: 54px; background: #fff4c2; border-color: #e0a800; padding: 0; }
+#open-casino svg { width: 30px; height: 30px; animation: wheelspin 6s linear infinite; }
+#open-casino .fdot { position: absolute; top: 1px; right: 1px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b3b; border: 2px solid #fff; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes wheelspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #open-casino svg, #open-casino .fdot { animation: none; } }
+#casino, #duel { gap: 18px; }
+#casino > *, #duel > * { flex: none; }
 .crab-box { display: flex; align-items: flex-start; gap: 10px; }
 .crab-box .crab { width: 64px; flex: none; }
 .crab-box .bubble { flex: 1; min-width: 0; font-size: 0.9rem; }
@@ -463,9 +468,19 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 .rules .sy { display: inline-flex; gap: 1px; }
 .sym { width: 100%; height: 100%; display: block; }
 .mini { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
-.machine { background: #8b70e6; border: 3px solid #5a44b5; border-radius: 22px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 5px 0 #5a44b5; }
-.reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.reel { background: #fff; border: 3px solid #5a44b5; border-radius: 14px; aspect-ratio: 1 / 1.05; max-height: 22vh; padding: 10%; display: grid; place-items: center; }
+.cabinet { border-radius: 26px; padding: 10px 10px 14px; display: grid; gap: 12px; background: linear-gradient(180deg, #8a4b1f, #5e2f12); border: 4px solid #f2b705; box-shadow: 0 0 0 3px #a56a00, 0 8px 0 #3d1c08, 0 0 22px rgba(242, 183, 5, 0.45); }
+.marquee { display: flex; align-items: center; gap: 6px; background: linear-gradient(180deg, #e8203f, #a50f2a); border: 3px solid #f2b705; border-radius: 16px; padding: 6px 8px; }
+.marquee span { flex: none; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.3rem, 7vw, 1.9rem); letter-spacing: 0.08em; color: #ffe27a; text-shadow: 0 2px 0 #7a0a1e, 0 0 10px rgba(255, 226, 122, 0.8); }
+.bulbs { flex: 1; height: 10px; background: radial-gradient(circle, #fff3a8 0 3px, transparent 4px) 0 50% / 14px 10px repeat-x; animation: blink 1s steps(2) infinite; }
+.bulbs:last-child { animation-delay: 0.5s; }
+@keyframes blink { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .bulbs { animation: none; } }
+.reels-frame { background: linear-gradient(180deg, #ffd34d, #c98a00); border-radius: 18px; padding: 8px; box-shadow: inset 0 2px 0 #fff3a8, inset 0 -3px 0 #8a5a00; }
+.reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #2a1408; padding: 6px; border-radius: 12px; }
+.reel { background: linear-gradient(180deg, #d9d2c0, #fffdf5 30%, #fffdf5 70%, #d9d2c0); border-radius: 10px; aspect-ratio: 1 / 1.1; max-height: 22vh; padding: 12%; display: grid; place-items: center; box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35); }
+.spinbtn { min-height: 62px; border: 3px solid #7a0a1e; border-radius: 999px; background: linear-gradient(180deg, #ff5a5a, #d3162f); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; letter-spacing: 0.12em; text-shadow: 0 2px 0 #7a0a1e; box-shadow: 0 6px 0 #7a0a1e, inset 0 3px 0 rgba(255, 255, 255, 0.4); touch-action: manipulation; cursor: pointer; }
+.spinbtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #7a0a1e, inset 0 3px 0 rgba(255, 255, 255, 0.4); }
+.spinbtn:disabled { opacity: 0.45; filter: grayscale(0.5); box-shadow: 0 3px 0 #7a0a1e; }
 .reel.spin { animation: rshake 0.16s linear infinite; }
 @keyframes rshake { 50% { transform: translateY(2px); } }
 .betrow { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; align-items: center; }
@@ -473,7 +488,7 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 .betrow input { width: 100%; min-height: 48px; text-align: center; font: 700 1.3rem var(--font-display); border: 2px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--fg); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .chips button { width: auto; min-height: 38px; padding: 0 12px; border-radius: 999px; font-size: 0.9rem; flex: 1 1 auto; }
-.cas-msg { text-align: center; font-weight: 800; min-height: 1.4em; color: #fff; overflow-wrap: anywhere; }
+.cas-msg { text-align: center; font-weight: 800; min-height: 1.4em; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.5); overflow-wrap: anywhere; }
 .cas-msg.win { color: #ffe27a; }
 .hist { display: grid; gap: 6px; }
 .hist .hr { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; }
@@ -487,6 +502,7 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 .tuto-dots i.on { background: var(--accent); }
 .coach-name { text-align: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 1.1rem; }
 .bubble { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 20px; padding: 12px 14px; font-weight: 700; line-height: 1.35; box-shadow: 0 4px 0 var(--line); overflow-wrap: anywhere; }
+#tuto::before, #tuto::after { content: ""; flex: 1 0 0; }
 #tuto .bubble { text-align: center; font-size: 1.05rem; max-width: 36ch; margin-inline: auto; }
 .coach { display: flex; align-items: center; gap: 8px; }
 .coach .mascot { width: 44px; flex: none; }
@@ -506,7 +522,6 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 @media (max-height: 780px) {
   .view { gap: 10px; }
   #tuto .bubble { font-size: 0.98rem; }
-  #open-casino { min-height: 50px; }
   .mascot-wrap { width: min(30vw, 112px); }
   #welcome, #menu { gap: 10px; padding-block: 0; }
   #welcome h1, #menu h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
@@ -612,6 +627,9 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
     <button class="fbtn lft" id="open-settings" type="button" aria-label="Paramètres">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
+    <button class="fbtn lft second" id="open-casino" type="button" aria-label="Casino" hidden>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#c8102e" stroke="#e0a800" stroke-width="2.5"/><g fill="#fff4c2"><path d="M16 2a14 14 0 0 1 9.9 4.1L16 16z"/><path d="M30 16a14 14 0 0 1-4.1 9.9L16 16z"/><path d="M16 30a14 14 0 0 1-9.9-4.1L16 16z"/><path d="M2 16a14 14 0 0 1 4.1-9.9L16 16z"/></g><circle cx="16" cy="16" r="5" fill="#e0a800" stroke="#8a5a00" stroke-width="1.5"/><circle cx="16" cy="16" r="1.8" fill="#8a5a00"/></svg><i class="fdot"></i>
+    </button>
     <button class="fbtn" id="open-friends" type="button" aria-label="Amis" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>
       <span class="fbadge" id="friend-badge" hidden>0</span>
@@ -645,10 +663,6 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20L16 8M13 5h6v6"/><path d="M20 20L8 8M11 5H5v6"/></svg>
         Duels
       </button>
-      <button class="btn btn-soft tile" id="open-casino" type="button" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="12" r="1" fill="currentColor"/></svg>
-        Casino
-      </button>
     </div>
   </section>
 
@@ -657,37 +671,33 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
       <button class="back" type="button" data-menu><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Menu</button>
       <span class="pill"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fff4c2" stroke="#e0a800" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#e0a800" stroke-width="1.5"/></svg><b class="num" id="cas-coins">0</b></span>
     </div>
-    <h2 class="title">Casino</h2>
-    <div id="cas-intro">
-      <div class="crab-box">
-        <div class="crab" id="crab-intro" aria-hidden="true"></div>
-        <div class="bubble">Salut, je suis <b>Crabi</b>, le crabe du casino ! Ouvert du vendredi au dimanche. Choisis ta mise, lance les 3 rouleaux :
-          <ul class="rules">
-            <li><span class="sy" data-sy="fraise,fraise,fraise"></span><span>ta mise est <b>doublée</b></span></li>
-            <li><span class="sy" data-sy="oeuf,oeuf,oeuf"></span><span>tu gagnes un <b>œuf cosmique</b>, mais tu perds ta mise</span></li>
-            <li><span class="sy" data-sy="piece,piece,piece"></span><span>tu <b>récupères</b> ta mise</span></li>
-            <li class="full"><span>Toute autre combinaison : mise <b>perdue</b></span></li>
-          </ul>
-        </div>
-      </div>
-      <div class="stack"><button class="btn btn-main" id="cas-ok" type="button">J'ai compris, je joue !</button></div>
-    </div>
-    <div id="cas-machine" hidden>
-      <div class="machine">
+    <div class="cabinet" id="cas-machine">
+      <div class="marquee"><i class="bulbs"></i><span>JACKPOT</span><i class="bulbs"></i></div>
+      <div class="reels-frame">
         <div class="reels" id="cas-reels" aria-live="polite"><div class="reel"></div><div class="reel"></div><div class="reel"></div></div>
-        <p class="cas-msg" id="cas-msg" aria-live="polite"></p>
-        <div class="betrow">
-          <button class="btn btn-soft" id="cas-minus" type="button" aria-label="Diminuer la mise">−</button>
-          <input id="cas-bet" type="text" inputmode="numeric" autocomplete="off" aria-label="Mise" value="50">
-          <button class="btn btn-soft" id="cas-plus" type="button" aria-label="Augmenter la mise">+</button>
-        </div>
-        <div class="chips" id="cas-chips"></div>
-        <button class="btn btn-main" id="cas-spin" type="button">Lancer</button>
       </div>
-      <button class="linkbtn" id="cas-rules" type="button">Revoir les règles</button>
-      <h3 class="sub-title" style="font-family:var(--font-display)">Tes dernières parties</h3>
-      <div class="hist" id="cas-hist"></div>
+      <p class="cas-msg" id="cas-msg" aria-live="polite"></p>
+      <div class="betrow">
+        <button class="btn btn-soft" id="cas-minus" type="button" aria-label="Diminuer la mise">−</button>
+        <input id="cas-bet" type="text" inputmode="numeric" autocomplete="off" aria-label="Mise" value="50">
+        <button class="btn btn-soft" id="cas-plus" type="button" aria-label="Augmenter la mise">+</button>
+      </div>
+      <div class="chips" id="cas-chips"></div>
+      <button class="spinbtn" id="cas-spin" type="button">SPIN</button>
     </div>
+    <div class="crab-box">
+      <div class="crab" id="crab-intro" aria-hidden="true"></div>
+      <div class="bubble">Bienvenue ! Je suis <b>Monsieur Crab</b>, le crabe du casino (ouvert du vendredi au dimanche). Choisis ta mise et lance les 3 rouleaux :
+        <ul class="rules">
+          <li><span class="sy" data-sy="fraise,fraise,fraise"></span><span>ta mise est <b>doublée</b></span></li>
+          <li><span class="sy" data-sy="oeuf,oeuf,oeuf"></span><span>tu gagnes un <b>œuf cosmique</b>, mais tu perds ta mise</span></li>
+          <li><span class="sy" data-sy="piece,piece,piece"></span><span>tu <b>récupères</b> ta mise</span></li>
+          <li class="full"><span>Toute autre combinaison : mise <b>perdue</b></span></li>
+        </ul>
+      </div>
+    </div>
+    <h3 class="sub-title" style="font-family:var(--font-display);margin:0">Tes dernières parties</h3>
+    <div class="hist" id="cas-hist"></div>
   </section>
 
   <section class="view" id="settings" hidden>
@@ -3233,6 +3243,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     });
     var el = document.getElementById("cfg-theme");
     if (!el) { el = document.createElement("style"); el.id = "cfg-theme"; document.head.appendChild(el); }
+    setTimeout(syncBars, 30);
     el.textContent = (light ? ":root{" + light + "}" : "") + (dark ? '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){' + dark + '}}:root[data-theme="dark"]{' + dark + "}" : "");
   }
 
@@ -3372,8 +3383,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (mode !== "account" || !me || !me.casino) return;
     stopTimer(); s.phase = "casino";
     $("crab-intro").innerHTML = crabSvg();
-    document.querySelectorAll("#cas-intro .sy").forEach(function (e) { e.innerHTML = miniSyms(e.dataset.sy.split(",")); });
-    $("cas-intro").hidden = false; $("cas-machine").hidden = true;
+    document.querySelectorAll("#casino .sy").forEach(function (e) { e.innerHTML = miniSyms(e.dataset.sy.split(",")); });
     $("cas-msg").textContent = "";
     var rs = $("cas-reels").children; for (var i = 0; i < 3; i++) rs[i].innerHTML = symSvg(["fraise", "oeuf", "piece"][i]);
     var b = parseInt($("cas-bet").value, 10); if (!(b >= CAS.min && b <= CAS.max)) $("cas-bet").value = String(Math.max(CAS.min, Math.min(CAS.max, 50)));
@@ -3394,7 +3404,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     });
     var bet = casBet(), okBet = bet >= CAS.min && bet <= CAS.max && me && bet <= me.coins;
     $("cas-spin").disabled = CAS.busy || !okBet;
-    $("cas-spin").textContent = CAS.busy ? "…" : "Lancer (" + fmtInt(bet || 0) + ")";
+    $("cas-spin").textContent = CAS.busy ? "…" : "SPIN";
     if (!CAS.busy && !okBet && $("cas-msg").textContent === "") $("cas-msg").textContent = me && bet > me.coins ? "Tu n'as pas assez de pièces pour cette mise." : "Mise entre " + fmtInt(CAS.min) + " et " + fmtInt(CAS.max) + ".";
     var box = $("cas-hist"); box.innerHTML = "";
     if (!CAS.hist.length) { var em = document.createElement("div"); em.className = "empty-state"; em.textContent = "Aucune partie pour le moment."; box.appendChild(em); }
@@ -3638,6 +3648,18 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   function readNativeInsets() {
     try { if (window.PMNative && window.PMNative.safeTop) document.documentElement.style.setProperty("--sat", window.PMNative.safeTop() + "px"); } catch (e) {}
   }
+  /* the native window behind the page takes the page colour, so no strip shows at the screen edges */
+  function syncBars() {
+    try {
+      var c = getComputedStyle(document.body).backgroundColor, m = c.match(/\d+/g);
+      if (!m) return;
+      var hex = "#" + m.slice(0, 3).map(function (x) { return ("0" + (+x).toString(16)).slice(-2); }).join("");
+      var meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute("content", hex);
+      if (window.PMNative && window.PMNative.setBg) window.PMNative.setBg(hex);
+    } catch (e) {}
+  }
+  setTimeout(syncBars, 0); setTimeout(syncBars, 1500);
+  if (window.matchMedia) { try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { setTimeout(syncBars, 50); }); } catch (e) {} }
   readNativeInsets();
   window.addEventListener("resize", readNativeInsets);
   window.addEventListener("focus", readNativeInsets);
@@ -3734,8 +3756,6 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   });
   $("open-settings").addEventListener("click", goSettings);
   $("open-casino").addEventListener("click", goCasino);
-  $("cas-ok").addEventListener("click", function () { $("cas-intro").hidden = true; $("cas-machine").hidden = false; renderCasino(); });
-  $("cas-rules").addEventListener("click", function () { $("cas-intro").hidden = false; $("cas-machine").hidden = true; });
   $("cas-spin").addEventListener("click", casSpin);
   $("cas-minus").addEventListener("click", function () { setBet(casBet() - (casBet() > 100 ? 50 : 10)); });
   $("cas-plus").addEventListener("click", function () { setBet(casBet() + (casBet() >= 100 ? 50 : 10)); });
