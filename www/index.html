@@ -1084,7 +1084,9 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     { id: "sun", pct: 60, name: "Soleil", r: 4, kind: "coin", color: "#ffc233" },
     { id: "rainbow", pct: 50, name: "Arc-en-ciel", r: 4, kind: "score", color: "#ffffff" }
   ];
-  var SPETS = PETS.map(function (q) { var o = {}; for (var k in q) o[k] = q[k]; o.id = q.id + "_s"; o.base = q.id; o.shiny = true; o.pct = Math.round(q.pct * 1.5); return o; });
+  function buildSpets() { return PETS.map(function (q) { var o = {}; for (var k in q) o[k] = q[k]; o.id = q.id + "_s"; o.base = q.id; o.shiny = true; o.pct = Math.max(1, Math.round(q.pct * SHINY_MULT)); return o; }); }
+  var SHINY_MULT = 1.5;
+  var SPETS = buildSpets();
   var SHINY_SELL = 4;
   var SHINY_CHANCE = 3;          // percent per egg
   var DAILY = [{ coins: 15 }, { coins: 20 }, { coins: 25 }, { coins: 35 }, { coins: 45 }, { coins: 60 }, { egg: "etoile" }];
@@ -1100,6 +1102,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     cosmos: { name: "Cosmos", pets: ["galaxy", "sun", "dragon", "unicorn", "octopus"] }
   };
   var TEAM_MAX = 3;
+  var SC_ACC = 700, SC_TIME = 300, SC_MINACC = 0.15;   // score: accuracy points, time points, accuracy floor (server settings)
   var COIN_DIV = 150;           // 1 coin per 150 points before bonuses
   var CONFIRM_FROM = 120;       // eggs at this price or more ask for a second tap
 
@@ -1193,8 +1196,8 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   }
 
   function computeScore(L, attempts, seconds, flat) {
-    var a = Math.round(700 * Math.max(0.15, Math.min(1, L.par / attempts)));
-    var t = Math.round(300 * Math.max(0, 1 - seconds / L.time));
+    var a = Math.round(SC_ACC * Math.max(SC_MINACC, Math.min(1, L.par / attempts)));
+    var t = Math.round(SC_TIME * Math.max(0, 1 - seconds / L.time));
     var base = (a + t) * L.mult;
     var b = flat ? { coin: 0, score: 0 } : teamBonus();
     var total = Math.round(base * (1 + b.score / 100));
@@ -1499,6 +1502,8 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
         var cl = function (cx) { return ci(cx - 5, 47, 5.5, "#fff") + ci(cx + 1, 44, 6.5, "#fff") + ci(cx + 7, 47, 5, "#fff"); };
         b += cl(10) + cl(50) + '<ellipse cx="30" cy="38" rx="0" ry="0" fill="none"/>';
         break;
+      default:                                   // a pet added on the server without its own drawing: round friend in its colour
+        b = '<ellipse cx="30" cy="38" rx="20" ry="17" ' + F + '/>' + face(38) + smile(46);
     }
     var glow = "", spk = "";
     if (p.shiny) {
@@ -3145,30 +3150,143 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   }
 
   /* ---------- remote settings (Supabase cfg_* tables) ---------- */
-  var configAt = 0, SHINY_MULT = 1.5;
+  var configAt = 0;
   function okNum(v, lo, hi) { v = +v; return isFinite(v) && v >= lo && v <= hi ? v : null; }
+  /* Everything below comes from the server tables cfg_* (see LISEZMOI): every value is validated, a bad row is ignored. */
+  function okStr(v, max) { return typeof v === "string" && v.length > 0 && v.length <= max ? v : null; }
+  function okColor(v) { return typeof v === "string" && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20}|(rgb|hsl)a?\([0-9.,%\s]{3,40}\))$/.test(v) ? v : null; }
+  function okId(v) { return typeof v === "string" && /^[a-z0-9]{1,20}$/.test(v) ? v : null; }
   function applyConfig(c) {
     if (!c || typeof c !== "object") return;
-    var v;
-    (c.eggs || []).forEach(function (x) {
-      var e = eggById(x.id);
-      if (!e) return;
-      if ((v = okNum(x.price, 1, 10000000)) !== null) e.price = Math.round(v);
-      if (Array.isArray(x.odds) && x.odds.length === e.odds.length && x.odds.every(function (o) { return isFinite(+o) && +o >= 0; })) e.odds = x.odds.map(Number);
-    });
+    var v, x;
     var st = c.settings || {};
     if ((v = okNum(st.shiny_chance, 0, 100)) !== null) SHINY_CHANCE = v;
     if ((v = okNum(st.shiny_mult, 0.1, 20)) !== null) SHINY_MULT = v;
     if ((v = okNum(st.shiny_sell_mult, 1, 100)) !== null) SHINY_SELL = v;
     if ((v = okNum(st.uni_weight, 1, 1000)) !== null) UNI_WEIGHT = v;
     if ((v = okNum(st.coin_div, 1, 1000000)) !== null) COIN_DIV = v;
-    (c.pets || []).forEach(function (x) {
-      PETS.forEach(function (q) { if (q.id === x.id && (v = okNum(x.pct, 1, 1000)) !== null) q.pct = Math.round(v); });
+    if ((v = okNum(st.score_acc_max, 0, 1000000)) !== null) SC_ACC = v;
+    if ((v = okNum(st.score_time_max, 0, 1000000)) !== null) SC_TIME = v;
+    if ((v = okNum(st.score_min_acc, 0, 1)) !== null) SC_MINACC = v;
+    if ((v = okNum(st.team_max, 1, 6)) !== null) TEAM_MAX = Math.round(v);
+    if ((v = okNum(st.confirm_egg_from, 0, 100000000)) !== null) CONFIRM_FROM = v;
+    (c.levels || []).forEach(function (r) {
+      var L = lvlById(r && r.id); if (!L) return;
+      if (okStr(r.name, 30)) L.name = r.name;
+      if (typeof r.descr === "string" && r.descr.length <= 80) L.desc = r.descr;
+      if (r.max_n === null) { L.max = Infinity; L.digits = 30; L.range = "1 – ∞"; }
+      else if ((v = okNum(r.max_n, 2, 1e15)) !== null) { L.max = v; L.digits = String(v).length; L.range = "1 – " + fmtInt(v); }
+      if ((v = okNum(r.par, 1, 1000)) !== null) L.par = v;
+      if ((v = okNum(r.time_s, 1, 100000)) !== null) L.time = v;
+      if ((v = okNum(r.mult, 1, 100000)) !== null) L.mult = v;
     });
-    PETS.forEach(function (q, i) { SPETS[i].pct = Math.max(1, Math.round(q.pct * SHINY_MULT)); });
-    (c.rar || []).forEach(function (x) { if (RAR[x.r] && okNum(x.sell, 0, 1000000) !== null) RAR[x.r].sell = +x.sell; });
-    if (Array.isArray(c.daily) && c.daily.length === 7) DAILY = c.daily.map(function (d) { return d.egg ? { egg: d.egg } : { coins: +d.coins || 0 }; });
+    (c.rar || []).forEach(function (r) {
+      if (!r || !RAR[r.r]) return;
+      if (okNum(r.sell, 0, 1000000) !== null) RAR[r.r].sell = +r.sell;
+      if (okStr(r.name, 24)) RAR[r.r].name = r.name;
+    });
+    (c.pets || []).forEach(function (r) {
+      var id = okId(r && r.id); if (!id) return;
+      var q = null; PETS.forEach(function (z) { if (z.id === id) q = z; });
+      if (!q) {                                              // a brand new pet added on the server: generic look (own colour)
+        q = { id: id, pct: 5, name: id, r: 0, kind: "coin", color: "#ffd6e8", uni: "" }; PETS.push(q);
+      }
+      if ((v = okNum(r.pct, 1, 1000)) !== null) q.pct = Math.round(v);
+      if (okStr(r.name, 24)) q.name = r.name;
+      if (r.r === 0 || (v = okNum(r.r, 0, RAR.length - 1)) !== null) q.r = Math.round(r.r === 0 ? 0 : v);
+      if (r.kind === "coin" || r.kind === "score") q.kind = r.kind;
+      if (okColor(r.color)) q.color = r.color;
+      if (okId(r.uni)) q.uni = r.uni;
+    });
+    SPETS = buildSpets();
+    (c.eggs || []).forEach(function (r) {
+      var id = okId(r && r.id); if (!id) return;
+      var e = eggById(id);
+      if (!e && Array.isArray(r.odds) && r.odds.length === RAR.length) { e = { id: id, uni: "", name: id, price: 100, odds: [20, 20, 20, 20, 20], body: "#ffd6e8", spot: "#8fdcc0" }; EGGS.push(e); }
+      if (!e) return;
+      if ((v = okNum(r.price, 1, 10000000)) !== null) e.price = Math.round(v);
+      if (Array.isArray(r.odds) && r.odds.length === e.odds.length && r.odds.every(function (o) { return isFinite(+o) && +o >= 0; })) e.odds = r.odds.map(Number);
+      if (okStr(r.name, 24)) e.name = r.name;
+      if (okColor(r.body)) e.body = r.body;
+      if (okColor(r.spot)) e.spot = r.spot;
+      if (okId(r.uni)) e.uni = r.uni;
+    });
+    if (Array.isArray(c.unis) && c.unis.length) {
+      var nu = {};
+      c.unis.forEach(function (u) { if (okId(u && u.id) && okStr(u.name, 24)) nu[u.id] = { name: u.name, pets: [] }; });
+      PETS.forEach(function (q) { if (q.uni) { if (!nu[q.uni]) nu[q.uni] = { name: q.uni, pets: [] }; nu[q.uni].pets.push(q.id); } });
+      EGGS.forEach(function (e) { if (e.uni && !nu[e.uni]) nu[e.uni] = { name: e.uni, pets: [] }; });
+      UNIS = nu;
+    }
+    if (Array.isArray(c.daily) && c.daily.length === 7) DAILY = c.daily.map(function (d) { return d.egg && eggById(d.egg) ? { egg: d.egg } : { coins: +d.coins || 0 }; });
+    if (c.theme && typeof c.theme === "object") applyTheme(c.theme);
+    if (c.texts && typeof c.texts === "object") setTexts(c.texts);
   }
+
+  /* Design from the server (cfg_theme): CSS variables only, checked one by one (no url(), no braces, no semicolons). */
+  function applyTheme(map) {
+    var light = "", dark = "";
+    Object.keys(map).slice(0, 200).forEach(function (k) {
+      var m = /^(dark:)?(--[a-z0-9-]{1,40})$/.exec(k), val = map[k];
+      if (!m || typeof val !== "string" || !/^[#a-zA-Z0-9(),.%\s'"-]{1,80}$/.test(val) || /url\s*\(|@import|expression/i.test(val)) return;
+      if (m[1]) dark += m[2] + ":" + val + ";"; else light += m[2] + ":" + val + ";";
+    });
+    var el = document.getElementById("cfg-theme");
+    if (!el) { el = document.createElement("style"); el.id = "cfg-theme"; document.head.appendChild(el); }
+    el.textContent = (light ? ":root{" + light + "}" : "") + (dark ? '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){' + dark + '}}:root[data-theme="dark"]{' + dark + "}" : "");
+  }
+
+  /* Texts from the server (cfg_texts): "original text" -> "new text", replaced wherever the text appears alone in an element
+     (buttons, titles, messages, placeholders), also in screens drawn later. Never inserted as HTML. */
+  var TEXTS = {}, TXT_SEEN = new WeakMap(), txtObs = null;
+  function txtSwap(node) {
+    var rec = TXT_SEEN.get(node), cur = node.nodeValue;
+    var orig = rec && rec.shown === cur ? rec.orig : cur;
+    var k = orig.trim();
+    var want = k && Object.prototype.hasOwnProperty.call(TEXTS, k) ? orig.replace(k, TEXTS[k]) : orig;
+    if (want !== cur) node.nodeValue = want;
+    if (want !== orig || rec) TXT_SEEN.set(node, { orig: orig, shown: want });
+  }
+  function txtAttr(el) {
+    ["placeholder", "aria-label"].forEach(function (a) {
+      if (!el.hasAttribute || !el.hasAttribute(a)) return;
+      var rec = el["__o_" + a], cur = el.getAttribute(a), orig = rec && rec.shown === cur ? rec.orig : cur;
+      var want = Object.prototype.hasOwnProperty.call(TEXTS, orig.trim()) ? TEXTS[orig.trim()] : orig;
+      if (want !== cur) el.setAttribute(a, want);
+      if (want !== orig || rec) el["__o_" + a] = { orig: orig, shown: want };
+    });
+  }
+  function txtWalk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { txtSwap(root); return; }
+    if (root.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(root.tagName)) return;
+    txtAttr(root);
+    for (var n = root.firstChild; n; n = n.nextSibling) txtWalk(n);
+    var all = root.querySelectorAll ? root.querySelectorAll("[placeholder],[aria-label]") : [];
+    for (var i = 0; i < all.length; i++) txtAttr(all[i]);
+  }
+  function setTexts(map) {
+    var o = {}, n = 0;
+    Object.keys(map).slice(0, 2000).forEach(function (k) { if (typeof map[k] === "string" && k.length <= 300 && map[k].length <= 300) { o[k.trim()] = map[k]; n++; } });
+    var had = Object.keys(TEXTS).length;
+    TEXTS = o;
+    if (!n && !had) return;
+    txtWalk(document.body);
+    if (!txtObs && window.MutationObserver) {
+      txtObs = new MutationObserver(function (list) {
+        list.forEach(function (m) {
+          if (m.type === "characterData") txtSwap(m.target);
+          else if (m.type === "attributes") txtAttr(m.target);
+          else m.addedNodes.forEach(txtWalk);
+        });
+      });
+      txtObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["placeholder", "aria-label"] });
+    }
+  }
+  (function cachedConfig() {                       // last known server config: design and texts are right from the first frame, even offline
+    var c = null; try { c = JSON.parse(localStorage.getItem("pm2.cfg")); } catch (e) {}
+    if (c) { try { applyConfig(c); } catch (e) {} }
+  })();
   function refreshConfigViews() {
     if (!me) return;
     if (s.phase === "shop") renderShop();
@@ -3177,7 +3295,10 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
   function loadConfig() {
     if (!FB || Date.now() - configAt < 60000) return;
     configAt = Date.now();
-    FB.rpc("get_config").then(function (c) { applyConfig(c); refreshConfigViews(); }).catch(function () { configAt = 0; });
+    FB.rpc("get_config").then(function (c) {
+      applyConfig(c); refreshConfigViews();
+      try { if (c && typeof c === "object") localStorage.setItem("pm2.cfg", JSON.stringify(c)); } catch (e) {}
+    }).catch(function () { configAt = 0; });
   }
   /* ---------- start-up ---------- */
   function timeout(ms) { return new Promise(function (r) { setTimeout(function () { r("timeout"); }, ms); }); }

@@ -160,3 +160,12 @@ table `cfg_missions` et colonnes `profiles.mp` / `profiles.mc`. Recolle `schema.
 - **Réglages** (Table Editor > `cfg_settings`) : `casino_min_bet` (20), `casino_max_bet` (500), `casino_w_fraise` (4), `casino_w_oeuf` (2), `casino_w_piece` (4) = poids de chaque symbole sur un rouleau (défaut : 3 fraises 6,4 %, 3 œufs 0,8 %, 3 pièces 6,4 %), `casino_cooldown_ms` (1500).
 - Ne descends pas la mise minimale trop bas : un œuf cosmique vaut 500 pièces, une mise de 1 pièce rendrait le tirage rentable.
 - À faire : recolle `schema.sql`.
+
+## Tout modifier depuis le serveur + glossaire PDF (nouveau)
+
+Le jeu lit sa configuration dans Supabase à chaque lancement (et la garde en mémoire sur le téléphone : textes et design sont prêts dès l'ouverture, même hors connexion). Tables à modifier dans Table Editor :
+`cfg_texts` (remplacer un texte : key = texte actuel, value = nouveau), `cfg_theme` (couleurs : `--accent`, `dark:--accent`…), `cfg_levels` (nom, description, taille, temps…), `cfg_pets` (nom, puissance `pct`, type, rareté, couleur, univers ; on peut **ajouter** un pet), `cfg_eggs` (nom, prix, chances, couleurs), `cfg_rarities`, `cfg_universes`, `cfg_daily`, `cfg_settings` (tous les chiffres : score, pièces, équipe, duels, amis, clubs, casino…), `cfg_app` (mises à jour).
+Toute valeur invalide est ignorée (elle ne peut pas casser le jeu) ; les couleurs/tailles sont filtrées (pas de lien ni de code).
+**Reste dans le code** : mise en page, dessin des pets (un pet ajouté sans dessin apparaît en rond de sa couleur), règles de fonctionnement, polices.
+Le fichier **`Guide-serveur-et-glossaire.pdf`** (dans ce dossier) explique chaque table, colonne, réglage, fonction et abréviation, avec des exemples SQL à coller.
+Recolle `schema.sql` (nouvelles colonnes, tables `cfg_universes/texts/theme`, réglages `score_*`, `team_max`, `confirm_egg_from`, `friend_cap`…).

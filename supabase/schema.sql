@@ -23,6 +23,18 @@ create table if not exists cfg_eggs (
 create table if not exists cfg_settings (key text primary key, value numeric not null);
 create table if not exists cfg_daily (day_idx int primary key, coins int, egg text);
 
+-- Noms, descriptions, couleurs : tout ce qui s'affiche peut être changé ici (vide '' = valeur d'origine du jeu)
+alter table cfg_levels add column if not exists name text not null default '';
+alter table cfg_levels add column if not exists descr text not null default '';
+alter table cfg_pets add column if not exists color text not null default '';
+alter table cfg_eggs add column if not exists body text not null default '';
+alter table cfg_eggs add column if not exists spot text not null default '';
+create table if not exists cfg_universes (id text primary key, name text not null);
+-- Textes : "texte d'origine" -> "nouveau texte" (voir LISEZMOI). Remplace partout où le texte apparaît tel quel.
+create table if not exists cfg_texts (key text primary key, value text not null);
+-- Design : variable CSS -> valeur (ex. --accent = #d9337a). Préfixe "dark:" pour le thème sombre.
+create table if not exists cfg_theme (key text primary key, value text not null);
+
 insert into cfg_levels (id, max_n, par, time_s, mult) values
   ('easy', 10, 3, 20, 1), ('normal', 100, 6, 60, 2), ('hard', 1000, 9, 120, 4), ('nightmare', null, 24, 300, 8)
 on conflict (id) do nothing;
@@ -52,8 +64,21 @@ on conflict (id) do nothing;
 insert into cfg_settings (key, value) values
   ('shiny_chance', 3), ('shiny_mult', 1.5), ('shiny_sell_mult', 4), ('uni_weight', 5), ('coin_div', 150),
   ('club_cap', 30), ('club_max_requests', 3), ('duel_k', 40), ('duel_idle_s', 30), ('duel_max_min', 15), ('mm_window', 100), ('mm_window_step', 15), ('ranked_cooldown_min', 5),
+  ('score_acc_max', 700), ('score_time_max', 300), ('score_min_acc', 0.15), ('team_max', 3), ('confirm_egg_from', 120),
+  ('nightmare_min_exp', 2), ('nightmare_span', 7), ('friend_cap', 100), ('friend_pending_cap', 20),
   ('casino_min_bet', 20), ('casino_max_bet', 500), ('casino_w_fraise', 4), ('casino_w_oeuf', 2), ('casino_w_piece', 4), ('casino_cooldown_ms', 1500)
 on conflict (key) do nothing;
+update cfg_levels l set name = v.n, descr = v.d from (values
+  ('easy', 'Facile', 'Pour s''échauffer.'), ('normal', 'Normal', 'Le classique.'), ('hard', 'Difficile', 'Là, ça devient sérieux.'),
+  ('nightmare', 'Nightmare', 'Aucune limite. Le nombre peut être énorme.')) v(i, n, d) where l.id = v.i and l.name = '';
+update cfg_pets q set color = v.c from (values
+  ('cat','#ffb36b'),('bunny','#fff4f8'),('frog','#7fdc9b'),('duck','#ffd94d'),('snail','#e8c9a0'),('cloud','#cfe6ff'),('panda','#ffffff'),
+  ('fox','#ff9a4d'),('penguin','#4a5a86'),('octopus','#c58bff'),('unicorn','#fff6ff'),('dragon','#6fd08c'),('owl','#b98b6b'),('ghost','#ebe7ff'),
+  ('phoenix','#ff5d4a'),('star','#ffd84d'),('moon','#fff0b3'),('galaxy','#5a43a8'),('sun','#ffc233'),('rainbow','#ffffff')) v(i, c)
+  where q.id = v.i and q.color = '';
+update cfg_eggs e set body = v.b, spot = v.s from (values
+  ('pastel','#ffd6e8','#8fdcc0'),('etoile','#cfe3ff','#ffcf3d'),('cosmique','#8b70e6','#ffb3e0')) v(i, b, s) where e.id = v.i and e.body = '';
+insert into cfg_universes (id, name) values ('prairie', 'Prairie'), ('ciel', 'Ciel étoilé'), ('cosmos', 'Cosmos') on conflict (id) do nothing;
 insert into cfg_daily (day_idx, coins, egg) values
   (0, 15, null), (1, 20, null), (2, 25, null), (3, 35, null), (4, 45, null), (5, 60, null), (6, null, 'etoile')
 on conflict (day_idx) do nothing;
@@ -246,16 +271,19 @@ alter table cfg_pets enable row level security;
 alter table cfg_eggs enable row level security;
 alter table cfg_settings enable row level security;
 alter table cfg_daily enable row level security;
+alter table cfg_universes enable row level security;
+alter table cfg_texts enable row level security;
+alter table cfg_theme enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['cfg_levels','cfg_rarities','cfg_pets','cfg_eggs','cfg_settings','cfg_daily'] loop
+  foreach t in array array['cfg_levels','cfg_rarities','cfg_pets','cfg_eggs','cfg_settings','cfg_daily','cfg_universes','cfg_texts','cfg_theme'] loop
     execute format('drop policy if exists "lecture publique" on %I', t);
     execute format('create policy "lecture publique" on %I for select using (true)', t);
   end loop;
 end $$;
 revoke all on profiles, games, duels, duel_secrets, duel_players, duel_queue, blocked_words, name_history, friendships, friend_attempts, clubs, club_members, club_requests from anon, authenticated;
-revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily from anon, authenticated;
+revoke insert, update, delete on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_universes, cfg_texts, cfg_theme from anon, authenticated;
 
 -- =====================================================================
 -- Fonctions internes (préfixe _ : jamais appelables depuis le téléphone)
@@ -300,7 +328,7 @@ declare v_max bigint;
 begin
   select max_n into v_max from cfg_levels where id = p_lvl;
   if not found then raise exception 'bad_level'; end if;
-  if v_max is null then return greatest(1, floor(power(10, 2 + random() * 7))::bigint); end if;
+  if v_max is null then return greatest(1, floor(power(10, _setting('nightmare_min_exp') + random() * _setting('nightmare_span')))::bigint); end if;
   return 1 + floor(random() * v_max)::bigint;
 end $$;
 
@@ -370,9 +398,12 @@ create or replace function get_config() returns jsonb language sql stable securi
 set search_path = public as $$
   select jsonb_build_object(
     'levels', (select coalesce(jsonb_agg(to_jsonb(l)), '[]') from cfg_levels l),
-    'rar', (select coalesce(jsonb_agg(jsonb_build_object('r', r, 'sell', sell) order by r), '[]') from cfg_rarities),
-    'pets', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'pct', pct)), '[]') from cfg_pets),
-    'eggs', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'price', price, 'odds', odds)), '[]') from cfg_eggs),
+    'rar', (select coalesce(jsonb_agg(jsonb_build_object('r', r, 'sell', sell, 'name', name) order by r), '[]') from cfg_rarities),
+    'pets', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'pct', pct, 'name', name, 'r', r, 'kind', kind, 'uni', uni, 'color', color)), '[]') from cfg_pets),
+    'eggs', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'price', price, 'odds', odds, 'name', name, 'uni', uni, 'body', body, 'spot', spot)), '[]') from cfg_eggs),
+    'unis', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name)), '[]') from cfg_universes),
+    'texts', (select coalesce(jsonb_object_agg(key, value), '{}') from cfg_texts),
+    'theme', (select coalesce(jsonb_object_agg(key, value), '{}') from cfg_theme),
     'settings', (select coalesce(jsonb_object_agg(key, value), '{}') from cfg_settings),
     'daily', (select coalesce(jsonb_agg(jsonb_build_object('coins', coins, 'egg', egg) order by day_idx), '[]') from cfg_daily))
 $$;
@@ -540,8 +571,8 @@ update profiles set friend_code = _gen_friend_code() where friend_code is null;
 create unique index if not exists profiles_friend_code on profiles (friend_code);
 
 -- Limites (anti-abus)
-create or replace function _friend_cap() returns int language sql immutable as $$ select 100 $$;
-create or replace function _friend_pending_cap() returns int language sql immutable as $$ select 20 $$;
+create or replace function _friend_cap() returns int language sql stable as $$ select coalesce((select value from cfg_settings where key = 'friend_cap'), 100)::int $$;
+create or replace function _friend_pending_cap() returns int language sql stable as $$ select coalesce((select value from cfg_settings where key = 'friend_pending_cap'), 20)::int $$;
 
 -- Liste complète : mon code, mes amis, les demandes reçues, les demandes envoyées.
 create or replace function friends_list(p_sid text) returns jsonb language plpgsql stable security definer
@@ -1074,8 +1105,8 @@ begin
       return _duel_end(g);
     end if;
   end if;
-  v_a := round(700 * greatest(0.15, least(1, L.par::numeric / v_tries)))::int;
-  v_t := round(300 * greatest(0, 1 - v_el / L.time_s))::int;
+  v_a := round(_setting('score_acc_max') * greatest(_setting('score_min_acc'), least(1, L.par::numeric / v_tries)))::int;
+  v_t := round(_setting('score_time_max') * greatest(0, 1 - v_el / L.time_s))::int;
   v_base := (v_a + v_t) * L.mult;
   if v_duel then bc := 0; bs := 0; else select b_coin, b_score into bc, bs from _team_bonus(v_uid); end if;
   v_total := round(v_base * (1 + bs / 100.0));
@@ -1121,7 +1152,7 @@ create or replace function set_team(p_sid text, p_team jsonb) returns jsonb lang
 set search_path = public as $$
 declare v_uid uuid := _me(p_sid); v_inv jsonb; v_id text;
 begin
-  if jsonb_typeof(p_team) <> 'array' or jsonb_array_length(p_team) > 3 then raise exception 'bad_team'; end if;
+  if jsonb_typeof(p_team) <> 'array' or jsonb_array_length(p_team) > _setting('team_max') then raise exception 'bad_team'; end if;
   select inv into v_inv from profiles where id = v_uid;
   for v_id in select jsonb_array_elements_text(p_team) loop
     if not exists (select 1 from cfg_pets where id = regexp_replace(v_id, '_s$', '')) then raise exception 'bad_team'; end if;
@@ -1534,4 +1565,4 @@ drop function if exists claim_mission(text, text);
 drop table if exists cfg_missions;
 alter table profiles drop column if exists mp, drop column if exists mc;
 
-grant select on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily to anon, authenticated;
+grant select on cfg_levels, cfg_rarities, cfg_pets, cfg_eggs, cfg_settings, cfg_daily, cfg_universes, cfg_texts, cfg_theme to anon, authenticated;
