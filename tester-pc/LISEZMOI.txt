@@ -1,0 +1,6 @@
+Tester le jeu sur ton PC (sans APK)
+1. Telecharge ce dossier "tester-pc" (ou juste le fichier Tester-sur-PC.bat) sur ton PC.
+2. Double-clique sur Tester-sur-PC.bat : il telecharge la derniere version de la branche "supabase" et l'ouvre dans ton navigateur.
+3. A chaque mise a jour, relance simplement le .bat.
+Astuce : dans Chrome, F12 puis l'icone telephone pour voir le jeu en format mobile.
+Windows peut afficher un avertissement la premiere fois : "Informations complementaires" puis "Executer quand meme".
