@@ -130,10 +130,11 @@ body {
 }
 .app { max-width: 440px; margin: 0 auto; height: 100%; min-height: 0; display: flex; flex-direction: column; }
 .view { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.view { padding: 4px 6px 8px; margin-inline: -6px; }
 .view::-webkit-scrollbar { display: none; }
 h1, h2, p { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { cursor: default; }
 .num { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 
@@ -282,13 +283,13 @@ button:disabled { cursor: default; }
 .plr .tag { background: var(--yellow); color: var(--yellow-ink); border-radius: 999px; padding: 0 9px; font-size: 0.8rem; font-weight: 600; }
 .plr .nm { overflow-wrap: anywhere; min-width: 0; }
 .plist2 { display: grid; gap: 8px; }
-.fbtn { position: absolute; top: 0; right: 0; z-index: 2; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
+.fbtn { position: absolute; top: 4px; right: 6px; z-index: 2; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); padding: 0; touch-action: manipulation; }
 .fbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--line); }
 .fbtn svg { width: 24px; height: 24px; }
-.fbtn.lft { right: auto; left: 0; }
+.fbtn.lft { right: auto; left: 6px; }
 .fbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: var(--accent-fg); font: 700 0.7rem/18px var(--font-body); text-align: center; }
 #menu { position: relative; }
-.fbtn.second { top: 54px; }
+.fbtn.second { top: 58px; }
 .tabs.two { grid-template-columns: repeat(2, 1fr); }
 .fwrap { display: grid; gap: 6px; }
 .fwrap > .frow.tap { cursor: pointer; }
@@ -452,12 +453,14 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
 .ver { text-align: center; color: var(--muted); font-size: 0.8rem; }
 
 /* casino (Fri-Sun) */
-#open-casino { top: 54px; background: #fff4c2; border-color: #e0a800; padding: 0; }
+#open-casino { top: 58px; background: #fff4c2; border-color: #e0a800; padding: 0; }
 #open-casino svg { width: 30px; height: 30px; animation: wheelspin 6s linear infinite; }
 #open-casino .fdot { position: absolute; top: 1px; right: 1px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b3b; border: 2px solid #fff; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes wheelspin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #open-casino svg, #open-casino .fdot { animation: none; } }
 #casino, #duel { gap: 18px; }
+#cl-none, #cl-in { display: grid; gap: 14px; }
+#cl-none > *, #cl-in > * { min-width: 0; }
 #casino > *, #duel > * { flex: none; }
 .crab-box { display: flex; align-items: flex-start; gap: 10px; }
 .crab-box .crab { width: 64px; flex: none; }
@@ -608,7 +611,6 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
     </form>
 
     <p class="note" id="welcome-note" aria-live="polite">Connexion en cours...</p>
-    <button class="linkbtn" id="w-guest" type="button">Jouer sans compte</button>
     <button class="linkbtn" id="w-tuto" type="button">Revoir le tutoriel</button>
   </section>
 
@@ -619,6 +621,7 @@ a.btn { text-decoration: none; display: flex; align-items: center; justify-conte
     <div class="bubble" id="tuto-text" aria-live="polite"></div>
     <div class="stack">
       <button class="btn btn-main" id="tuto-next" type="button"></button>
+      <button class="btn btn-soft" id="tuto-guest" type="button" hidden>Jouer sans compte</button>
     </div>
     <button class="linkbtn" id="tuto-skip" type="button">Passer le tutoriel</button>
   </section>
@@ -3570,6 +3573,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     $("tuto-text").textContent = st.text;
     $("tuto-next").textContent = st.btn;
     $("tuto-skip").hidden = !!st.end;
+    $("tuto-guest").hidden = !(st.end && mode !== "account");
     s.phase = "tuto";
   }
   function tutoNext() {
@@ -3705,7 +3709,7 @@ window.PM_SUPABASE = { url: "https://eveunhqiyjpodzsoenxj.supabase.co", key: "sb
     if (e.target && e.target.id === "inv-only") { invOnly = e.target.checked; renderInv(); }
   });
   $("logout").addEventListener("click", logout);
-  $("w-guest").addEventListener("click", playAsGuest);
+  $("tuto-guest").addEventListener("click", function () { lsSet("pm2.tuto", "1"); tu = null; s.tg = false; $("coach").hidden = true; $("coach-end").hidden = true; stopTimer(); playAsGuest(); });
   $("w-tuto").addEventListener("click", function () { startTuto(true); });
   $("tuto-next").addEventListener("click", tutoNext);
   $("tuto-skip").addEventListener("click", finishTuto);
